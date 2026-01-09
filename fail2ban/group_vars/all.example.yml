@@ -1,0 +1,15 @@
+---
+# Example group variables for all hosts
+# Copy this file to group_vars/all.yml and set your actual values
+
+# Gen0Sec API Bearer token (required)
+gen0sec_api_token: "your_gen0sec_api_token_here"
+
+# Block expiration time in seconds (default: 600 = 10 minutes)
+gen0sec_expiration: 600
+
+# Enable fail2ban jails (default: true)
+fail2ban_jail_enabled: true
+
+# Fail2Ban backend (systemd, auto, etc.)
+fail2ban_backend: systemd
