@@ -10,7 +10,7 @@ is at [docs.gen0sec.com](https://docs.gen0sec.com).
 |---|---|
 | [`integrations/`](./integrations/) | Ready-to-use integrations of third-party tools with the Gen0Sec API |
 | `use-cases/` | Complete, runnable Synapse configurations (being added) |
-| `reference/` | Short annotated snippets, one per feature (being added) |
+| [`reference/`](./reference/) | Short annotated snippets, one per feature: config sections now, upstreams and security rules coming |
 
 ### Available now
 
@@ -23,8 +23,12 @@ is at [docs.gen0sec.com](https://docs.gen0sec.com).
   security signals. It is being updated: its block step points at a retired
   endpoint, so do not use it yet.
 
-Synapse configuration examples are being added. `use-cases/` and `reference/`
+Synapse configuration examples are being added. `reference/config/` is
+available; `use-cases/`, `reference/upstreams/` and `reference/security-rules/`
 will appear here when they are ready.
+
+Every config set is checked with `synapse --check-config`: run
+`SYNAPSE_BIN=/path/to/synapse make test`. `make help` lists the other targets.
 
 ## Standalone vs with a Gen0Sec API key
 

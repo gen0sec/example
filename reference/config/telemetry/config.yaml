@@ -1,0 +1,37 @@
+# telemetry: OpenTelemetry export to a collector of your own.
+mode: agent
+
+telemetry:
+  # Master switch. Default: true. With no destination, telemetry goes only to
+  # the local file /var/log/synapse/telemetry.log.
+  enabled: true
+
+  # OTLP/HTTP collector base URL; /v1/logs and /v1/metrics are appended.
+  # Default: "" (this destination off). The OTEL_EXPORTER_OTLP_ENDPOINT
+  # environment variable is a separate destination and is also used.
+  otlp:
+    endpoint: "https://collector.example.com:4318"
+    # Headers sent to this endpoint only (auth tokens, dataset names).
+    # Default: {}.
+    # headers:
+    #   Authorization: "Bearer <token>"
+
+  # HTTP access-log sampling. Default: keep everything.
+  access_log:
+    sample_rate: 1.0          # 0.0-1.0 of non-error records kept. Default: 1.0
+    always_keep_errors: true  # 4xx/5xx bypass the sampler. Default: true
+
+  # Resource attributes on every record. Default: service.name "synapse".
+  resource:
+    service_name: synapse-edge
+    attributes:
+      deployment.environment: staging
+
+  # Trace context, proxy mode.
+  tracing:
+    propagation: passthrough  # passthrough (default) | propagate | off
+    export_spans: false       # a span per request to /v1/traces. Default: false
+    sample_rate: 1.0          # of traces Synapse starts. Default: 1.0
+
+  # With a Gen0Sec API key (platform.api_key), telemetry also goes to the
+  # platform unless platform.telemetry_sending_enabled is false.

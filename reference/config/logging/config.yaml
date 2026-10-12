@@ -1,0 +1,44 @@
+# logging: what Synapse writes and where.
+mode: agent
+
+logging:
+  # error, warn, info, debug, trace. Default: info.
+  level: info
+
+  # Per-module overrides on top of `level`, by crate name; values are
+  # error|warn|info|debug|trace|off. Default: {}.
+  # module_levels:
+  #   synapse_idp: debug
+
+  # Write error/app/access logs to files, rotated and gzipped. Default: false
+  # (console only).
+  file_logging_enabled: true
+  log_directory: "/var/log/synapse"   # Default: /var/log/synapse
+  max_log_size: 104857600             # bytes per file before rotation. Default: 104857600 (100 MiB)
+  log_file_count: 10                  # rotated files kept. Default: 10
+
+  # Security-event log (blocks). Default file: {log_directory}/events.log.
+  # "stdout", "stderr" or "-" write to the console, for containers.
+  # events_log_file: events.log
+  # events_log_format: text           # text (default) | json
+
+  # Suricata-compatible EVE JSON (alerts, http, stats). Default: disabled.
+  eve_log:
+    enabled: true
+    file: "/var/log/synapse/eve.json"   # Default: {log_directory}/eve.json
+    event_types: [alert, stats]         # Default: [] (all types)
+
+  # One JSON line per fingerprint/BPF event (agent mode). Default: enabled.
+  # fingerprint_log:
+  #   enabled: true
+  #   file: /var/log/synapse/eventbridge.log   # Default: {log_directory}/eventbridge.log
+
+  # Linux syslog output. Default: disabled.
+  syslog:
+    enabled: false
+    facility: daemon                  # Default: daemon
+    identifier: synapse               # Default: synapse
+    levels:
+      error: err
+      app: info
+      access: info

@@ -1,0 +1,44 @@
+# capture: the packet-capture backend used for JA4+ fingerprinting.
+mode: agent
+
+capture:
+  # Default: true.
+  enabled: true
+
+  # Backend. Default: auto (XDP, then AF_PACKET, then PF_RING).
+  #   xdp             eBPF/XDP map polling
+  #   af_packet       AF_PACKET TPACKET_V3 mmap ring
+  #   af_packet_recv  AF_PACKET with plain recvfrom(); works on any kernel
+  #   pfring          PF_RING (needs pf_ring.ko and a pfring-capture build)
+  mode: auto
+
+  # Interface to capture on. Default: unset (auto-detected: all interfaces for
+  # af_packet_recv, otherwise the first physical one).
+  # interface: eth0
+
+  # Bytes captured per packet. Default: 65535.
+  snaplen: 65535
+
+  # BPF filter (tcpdump syntax). Default: "tcp". Not applied in af_packet_recv
+  # mode, which filters in user space.
+  filter: "tcp"
+
+  # Only used when mode: af_packet.
+  af_packet:
+    block_size: 4194304      # bytes per ring block, power of 2. Default: 4194304 (4 MiB)
+    block_count: 4           # ring blocks; ring = block_size * block_count. Default: 4
+    block_timeout_ms: 100    # flush an incomplete block after this. Default: 100
+    promiscuous: true        # Default: true
+
+  # Only used when mode: pfring.
+  pfring:
+    zero_copy: true          # mmap'd ring, no kernel-to-user copy
+    # cluster_id: 1          # multi-queue load balancing. Default: unset
+
+  # A fingerprint already forwarded within this window is not forwarded again.
+  # Default: 600 (seconds).
+  dedup_ttl_secs: 600
+
+  # Idle age after which an entry leaves the TCP fingerprint map. Keep it above
+  # dedup_ttl_secs. Default: 900 (seconds).
+  collector_stale_secs: 900

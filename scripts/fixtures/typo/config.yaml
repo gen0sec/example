@@ -1,0 +1,4 @@
+# Control fixture: `ifce` is a misspelled key. The check must fail on it.
+mode: agent
+network:
+  ifce: lo

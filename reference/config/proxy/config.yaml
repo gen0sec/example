@@ -1,0 +1,75 @@
+# proxy: the reverse proxy and WAF. Routes live in a separate upstreams file.
+mode: proxy
+
+proxy:
+  # Listeners. Default: none, so set these or the address_* keys below
+  # (setting both forms is rejected). `mode` is http or tls, never guessed
+  # from the port.
+  listeners:
+    - { name: http, address: "0.0.0.0:8080", mode: http }
+    - { name: https, address: "0.0.0.0:8443", mode: tls }
+  # address_http: "0.0.0.0:80"      # older form, same effect
+  # address_tls: "0.0.0.0:443"
+  # https_redirect_port: 443        # where force_https redirects. Default: first tls listener's port
+
+  # Directory of {NAME}.crt / {NAME}.key pairs. Default: unset.
+  certificates: "/etc/synapse/certs"
+  default_certificate: default      # file stem used when no cert matches the SNI. Default: unset
+  tls_grade: medium                 # high | medium | unsafe. Default: medium
+
+  # Where routes are defined. Default: unset.
+  # upstream:
+  #   conf: "/etc/synapse/upstreams.yaml"
+  #   dns_cache_ttl_secs: 60        # Default: 60
+  #   healthcheck: { method: HEAD, interval: 2 }   # Default: HEAD every 2 s
+
+  # PROXY protocol, when a load balancer in front sends it. Default: off.
+  protocol:
+    enabled: false
+    timeout_ms: 1000
+
+  # Let's Encrypt (http-01) through the internal services port. Default: off.
+  acme:
+    enabled: false
+    # email: admin@example.com
+    # storage_path: "/var/lib/synapse/acme"   # Default
+    # development: false                      # true = staging server
+
+  # Plaintext HTTP/2 prior knowledge, e.g. gRPC. Default: false. Off because
+  # detecting the preface stalls an HTTP/1 request shorter than 24 bytes.
+  h2c: false
+
+  # Limits. Defaults shown; 0 turns a limit off.
+  downstream_read_timeout_secs: 60          # idle mid-request; also the HTTP/1 keepalive bound
+  h2_streaming_read_timeout_secs: 300
+  h2_connection_idle_timeout_secs: 3600
+  h2_first_stream_timeout_secs: 60
+  max_downstream_connections_per_client: 512
+  tunnel_max_lifetime_secs: 86400           # WebSocket tunnels
+  upstream_max_header_list_size_bytes: 1048576
+  # max_downstream_connections: 0           # Default: half the open-file limit
+  # tunnel_max_bytes: 0                     # Default: unlimited
+  # keepalive_request_limit: 1000           # Default: unlimited (HTTP/1)
+
+  # Internal services: health, captcha verify, ACME challenge. Default: on,
+  # loopback only.
+  internal_services:
+    enabled: true
+    port: 9180
+    bind_ip: "127.0.0.1"
+
+  # Captcha challenge for WAF rules with the challenge action. Default: unset.
+  # captcha:
+  #   provider: hcaptcha        # hcaptcha | recaptcha | turnstile | prosopo
+  #   site_key: "<site-key>"
+  #   secret_key: "<secret-key>"
+  #   jwt_secret: "<random-string>"   # e.g. openssl rand -base64 48
+  #   token_ttl: 7200
+  #   cache_ttl: 300
+
+  # ClamAV scanning, for WAF rules with the content_scanning action. Default: off.
+  # content_scanning:
+  #   enabled: true
+  #   clamav_server: "localhost:3310"
+  #   max_file_size: 10485760
+  #   unscannable: block        # block (413) | pass
