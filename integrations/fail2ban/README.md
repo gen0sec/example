@@ -1,6 +1,7 @@
 # Fail2Ban
 
 A Fail2Ban action that reports banned IP addresses to the Gen0Sec Signal API (`POST /v2/signal`).
+The request format is described in the [Signal API v2 reference](https://docs.gen0sec.com/docs/api/signal-api#signal-api-v2).
 
 ## Flow diagram
 ![Gen0Sec architecture](./fail2ban.svg)
