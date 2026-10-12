@@ -29,8 +29,14 @@ srv = HTTPServer(("127.0.0.1", 0), H)
 threading.Thread(target=srv.serve_forever, daemon=True).start()
 url = f"http://127.0.0.1:{srv.server_port}/v2/signal"
 
+# The key lives in a header file, so it never appears in the command that
+# Fail2Ban runs (and logs in full when the command fails).
+headers = f"{basedir}/gen0sec.headers"
+with open(headers, "w") as f:
+    f.write("Authorization: Bearer TESTKEY\n")
+
 def render(cmd, ip="203.0.113.7", bantime=600):
-    r = ActionReader("gen0sec", "sshd", {"g0stoken": "TESTKEY", "g0surl": url}, basedir=basedir)
+    r = ActionReader("gen0sec", "sshd", {"g0sheaders": headers, "g0surl": url}, basedir=basedir)
     assert r.read(), "read failed"; r.getOptions({})
     a = CommandAction(None, "gen0sec")
     for k, v in r.getCombined().items():
@@ -50,6 +56,7 @@ for cmd in ("actionban", "actionunban", "actionprolong"):
     c = render(cmd)
     check(f"{cmd} is defined", c is not None)
     if c is None: continue
+    check(f"{cmd} does not carry the API key in its command line", "TESTKEY" not in c)
     for code, want in ((200, 0), (206, 1), (403, 1), (500, 1)):
         reply["code"] = code; seen.clear()
         rc = subprocess.run(["/bin/sh", "-c", c], capture_output=True).returncode

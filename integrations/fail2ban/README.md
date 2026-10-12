@@ -18,16 +18,17 @@ The `integrations/fail2ban/` directory contains a Fail2Ban action file that inte
    curl -fSL https://raw.githubusercontent.com/gen0sec/example/refs/heads/main/integrations/fail2ban/gen0sec.conf -o /etc/fail2ban/action.d/gen0sec.conf
    ```
 
-2. Set appropriate permissions (the file contains your API token):
+2. Put your Gen0Sec API key in a header file that only root can read:
    ```bash
-   sudo chmod 640 /etc/fail2ban/action.d/gen0sec.conf
+   sudo install -m 600 -o root -g root /dev/null /etc/fail2ban/gen0sec.headers
+   echo 'Authorization: Bearer YOUR_API_KEY' | sudo tee /etc/fail2ban/gen0sec.headers >/dev/null
    ```
+   The action passes this file to curl, so the key never appears in the command
+   that Fail2Ban runs and logs. To use another path, set `g0sheaders` in the
+   `[Init]` section.
 
-3. Edit the configuration file and add your Gen0Sec API token:
-   ```bash
-   sudo nano /etc/fail2ban/action.d/gen0sec.conf
-   ```
-   Set the `g0stoken` value in the `[Init]` section.
+3. If you used the earlier version of this action, remove the `g0stoken` line you
+   set in `gen0sec.conf` or `jail.local`; it is no longer read.
 
 4. Configure your jail to use the Gen0Sec action by editing your jail configuration:
    ```bash
@@ -53,7 +54,7 @@ The `integrations/fail2ban/` directory contains a Fail2Ban action file that inte
 
 ### Requirements
 
-- `curl` (required)
+- `curl` 7.55 or later (required; it reads the API key header from a file)
 - `jq` (optional, for JSON parsing)
 - Gen0Sec API token with the `signal:write` permission (available from your Gen0Sec dashboard)
 
@@ -61,7 +62,7 @@ The `integrations/fail2ban/` directory contains a Fail2Ban action file that inte
 
 ### Configuration Options
 
-- `g0stoken`: Your Gen0Sec API Bearer token
+- `g0sheaders`: File holding the `Authorization: Bearer <key>` header (default: `/etc/fail2ban/gen0sec.headers`, mode 0600)
 - `g0shost`: This host's part of the rule name (default: the short hostname)
 - `expiration`: Block expiration time in seconds (default: the jail's `bantime`)
 
@@ -125,7 +126,7 @@ Run these steps from `integrations/fail2ban/`.
 
 - Installs fail2ban and required dependencies (curl, jq)
 - Copies and configures the Gen0Sec action file
-- Sets appropriate file permissions (640 for config file)
+- Writes the API key to `/etc/fail2ban/gen0sec.headers` (mode 0600)
 - Configures jail.local with Gen0Sec integration
 - Supports both Debian/Ubuntu and RedHat/CentOS systems
 - Enables and starts the fail2ban service
