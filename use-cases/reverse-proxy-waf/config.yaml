@@ -32,10 +32,13 @@ proxy:
 
 logging:
   level: info
-  # Console only, so `docker logs` and journald show everything.
-  file_logging_enabled: false
-  # Block decisions, one line each, on stdout.
-  events_log_file: stdout
-  events_log_format: text
+  # The packaged service runs with --daemon, which detaches from the terminal
+  # and discards standard output, so block events go to a file. Both settings
+  # below are ignored unless file_logging_enabled is true.
+  file_logging_enabled: true
+  log_directory: /var/log/synapse
+  # Block decisions, one JSON object per line.
+  events_log_file: /var/log/synapse/events.log
+  events_log_format: json
 
 # No platform.api_key: rules come from security_rules.yaml.

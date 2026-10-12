@@ -26,7 +26,7 @@ waf_rules:
       org_id: example
       description: Refuse the admin path from every client
       action: block
-      expression: 'starts_with(http.request.path, "/admin")'
+      expression: 'starts_with(lower(http.request.path), "/admin")'
 
     - id: waf-block-sqli
       name: Block basic SQL injection
@@ -41,3 +41,15 @@ waf_rules:
       description: Refuse script tags in the decoded query string
       action: block
       expression: 'lower(url_decode(http.request.query)) contains "<script"'
+
+    - id: waf-ratelimit-login
+      name: Rate limit /login
+      org_id: example
+      description: Allow 3 requests per client per 60 seconds to /login, then answer 429 for 60 seconds
+      action: ratelimit
+      expression: 'starts_with(lower(http.request.path), "/login")'
+      config:
+        rateLimit:
+          period: "60"      # window in seconds
+          duration: "60"    # how long the limit is enforced once exceeded
+          requests: "3"     # requests allowed in the window
