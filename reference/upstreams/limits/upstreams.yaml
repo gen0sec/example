@@ -20,7 +20,7 @@ hosts:
   api.example.com:
     tls:
       terminate:
-        cert: /etc/synapse/certs/api.example.com.crt
+        cert: api.example.com
     max_url_length: 2048             # replaces the global value for this host
     paths:
       "/":
@@ -32,6 +32,8 @@ hosts:
         normalize_path: false
         max_header_count: 200
 
-# Not set here: /health, /.well-known/acme-challenge/* and the captcha verify path
-# are served on every host automatically, from proxy.internal_services in
-# config.yaml. The v2 `internal:` block is validated and then ignored; do not use it.
+# Not set here: /health and the captcha verify path are always served on every
+# host, from proxy.internal_services in config.yaml. /.well-known/acme-challenge/*
+# is served only when proxy.acme.enabled and internal_services.serve_acme_challenge
+# are both true; otherwise it goes to the upstream, so a certbot webroot keeps
+# working. The v2 `internal:` block is validated and then ignored; do not use it.

@@ -18,8 +18,11 @@ set that `synapse --check-config` accepts: a `config.yaml` (proxy mode) and an
 
 - Every terminating host needs `tls.terminate` (a `cert`, or `acme`; `tls.terminate: {}`
   is accepted too). A host cannot set both `upstream`/`upstreams` and `paths`.
-- Certificate files named here are not read by `--check-config`, so the
-  paths in these sets are placeholders. Neither are listener names checked.
+- `cert:` is a certificate name, not a path: the stem of `<name>.crt` /
+  `<name>.key` (or the directory name for a `fullchain.pem` / `privkey.pem`
+  pair) in the `proxy.certificates` directory. A path misses the lookup and the
+  default certificate is served. `--check-config` does not read the files, so
+  the names here are placeholders; listener names are not checked either.
 - A key written wrongly is rejected (the v2 parser refuses unknown keys), with
   exceptions: a misspelled key inside `rewrite`, `redirect` or an entry of a
   weighted `upstreams` list is silently ignored.

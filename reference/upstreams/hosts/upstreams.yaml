@@ -15,13 +15,15 @@ default_host:
         type: none           # never probe; leaving the block out probes with the global settings
 
 hosts:
-  # Terminate TLS with a static certificate. The private key is not named here
-  # (a `key` setting is not used): it must sit beside the certificate in the
-  # proxy.certificates directory, as <name>.key.
+  # Terminate TLS with a static certificate. `cert` is a certificate NAME, not a
+  # path: the stem of <name>.crt / <name>.key (or the directory name for a
+  # fullchain.pem / privkey.pem pair) in the proxy.certificates directory. A path
+  # misses the lookup and Synapse serves the default certificate. The private key
+  # is not named here (a `key` setting is not used); it sits beside the certificate.
   www.example.com:
     tls:
       terminate:
-        cert: /etc/synapse/certs/www.example.com.crt
+        cert: www.example.com
     upstream: 10.0.0.11:8080    # one backend for the whole host (a single "/" route)
 
   # Terminate TLS with a certificate from Let's Encrypt. The embedded ACME client
@@ -50,7 +52,7 @@ hosts:
   "*.apps.example.com":
     tls:
       terminate:
-        cert: /etc/synapse/certs/apps.example.com.crt
+        cert: apps.example.com
     upstream: 10.0.0.13:8080
 
   # Serve a host on named listeners only (names from proxy.listeners in
@@ -62,5 +64,5 @@ hosts:
     listeners: [https]
     tls:
       terminate:
-        cert: /etc/synapse/certs/admin.example.com.crt
+        cert: admin.example.com
     upstream: 10.0.0.14:8080

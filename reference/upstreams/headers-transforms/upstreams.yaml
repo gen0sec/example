@@ -32,7 +32,7 @@ hosts:
   www.example.com:
     tls:
       terminate:
-        cert: /etc/synapse/certs/www.example.com.crt
+        cert: www.example.com
     headers:
       response:
         - "X-Frame-Options: DENY"       # extends the global list
