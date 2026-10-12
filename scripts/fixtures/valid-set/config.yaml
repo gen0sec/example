@@ -1,0 +1,4 @@
+# Control fixture: a valid config set. scripts/test-check.sh expects it to pass.
+mode: agent
+network:
+  iface: lo

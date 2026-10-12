@@ -13,7 +13,7 @@ network:
   # Default: [] (empty).
   ifaces: []
 
-  # IP versions to process. Default: auto.
+  # Accepted for compatibility; currently has no effect. Default: auto.
   ip_version: auto
 
   # Per-interface features. When set it replaces `iface` / `ifaces` (leave

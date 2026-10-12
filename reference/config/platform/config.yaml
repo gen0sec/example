@@ -10,15 +10,23 @@ platform:
   # With a Gen0Sec API key: send telemetry to the platform. Default: true.
   telemetry_sending_enabled: false
 
-  # GeoIP lookups (country and ASN) for access rules and logs. Default: enabled.
-  # Synapse reads one combined country+ASN MMDB file at country.path and
-  # refreshes it from country.url when a url is set.
+  # GeoIP lookups for access rules and logs. Country, ASN and city are three
+  # separate databases, each with its own path, url and headers. Nothing is
+  # loaded until a path or url is set for it. `enabled` defaults to true once
+  # a geoip block is written; without the block GeoIP is off.
   geoip:
     enabled: true
     refresh_secs: 28800        # Default: 28800 (8 hours)
     country:
-      path: "/var/lib/synapse/ipinfo_lite.mmdb"
-      # url: "https://downloads.example.com/ipinfo_lite.mmdb"   # your own source
+      path: "/var/lib/synapse/country.mmdb"
+      # url: "https://downloads.example.com/country.mmdb"   # your own source
+      # headers: { Authorization: "Bearer <token>" }        # for the download
+    asn:
+      path: "/var/lib/synapse/asn.mmdb"
+      # url: "https://downloads.example.com/asn.mmdb"
+    city:
+      path: "/var/lib/synapse/city.mmdb"
+      # url: "https://downloads.example.com/city.mmdb"
 
   # The keys below need a Gen0Sec API key. Defaults are the code defaults.
   # base_url: "https://api.gen0sec.com/v1"
@@ -35,9 +43,6 @@ platform:
   #   refresh_secs: 300
   #   advisory: true                   # count and log only
   #   enforce: false                   # true: install them in the kernel filter
-  # service_graph:                     # east-west service graph upload
-  #   enabled: false
-  #   interval_secs: 300
   # identity:                          # workload-identity database
   #   enabled: true
   #   url: ""

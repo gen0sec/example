@@ -27,8 +27,9 @@ Synapse configuration examples are being added. `reference/config/` is
 available; `use-cases/`, `reference/upstreams/` and `reference/security-rules/`
 will appear here when they are ready.
 
-Every config set is checked with `synapse --check-config`: run
-`SYNAPSE_BIN=/path/to/synapse make test`. `make help` lists the other targets.
+Config sets are checked with `synapse --check-config`, which arrives in the
+next Synapse release (no release has it yet). With a build that has it, run
+`SYNAPSE_BIN=/path/to/synapse make test`. CI does not run this check yet. `make help` lists the other targets.
 
 ## Standalone vs with a Gen0Sec API key
 

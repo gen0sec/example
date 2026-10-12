@@ -28,25 +28,28 @@ proxy:
     enabled: false
     timeout_ms: 1000
 
-  # Let's Encrypt (http-01) through the internal services port. Default: off.
+  # DEPRECATED: the embedded ACME client (Let's Encrypt http-01 through the
+  # internal services port) will be removed, and --check-config warns when it
+  # is enabled. Default: off.
   acme:
     enabled: false
     # email: admin@example.com
-    # storage_path: "/var/lib/synapse/acme"   # Default
+    # storage_path: "/var/lib/synapse/acme"   # Default: <working dir>/acme, or
+    #                                         # /var/lib/synapse/acme if the working dir is /
     # development: false                      # true = staging server
 
   # Plaintext HTTP/2 prior knowledge, e.g. gRPC. Default: false. Off because
   # detecting the preface stalls an HTTP/1 request shorter than 24 bytes.
   h2c: false
 
-  # Limits. Defaults shown; 0 turns a limit off.
+  # Limits. Defaults shown; 0 turns a limit off, except the two noted below.
   downstream_read_timeout_secs: 60          # idle mid-request; also the HTTP/1 keepalive bound
   h2_streaming_read_timeout_secs: 300
   h2_connection_idle_timeout_secs: 3600
-  h2_first_stream_timeout_secs: 60
+  h2_first_stream_timeout_secs: 60          # 0 only removes this bound: an unused connection then falls back to h2_connection_idle_timeout_secs (1 h)
   max_downstream_connections_per_client: 512
   tunnel_max_lifetime_secs: 86400           # WebSocket tunnels
-  upstream_max_header_list_size_bytes: 1048576
+  upstream_max_header_list_size_bytes: 1048576   # 0 restores HTTP/2's own 16 MiB limit, not "no limit"
   # max_downstream_connections: 0           # Default: half the open-file limit
   # tunnel_max_bytes: 0                     # Default: unlimited
   # keepalive_request_limit: 1000           # Default: unlimited (HTTP/1)

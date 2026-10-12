@@ -1,8 +1,8 @@
 # Main config reference
 
 One directory per top-level section of Synapse's main config file. Each holds
-a `config.yaml` that sets `mode` and that one section, with every key
-explained and its default stated. Copy the section into your own file.
+a `config.yaml` that sets `mode` and that one section, with the common keys
+explained and their defaults stated. Copy the section into your own file.
 
 | Section | Directory | What it sets |
 |---|---|---|
@@ -23,4 +23,8 @@ Notes:
   key is optional; one marked "With a Gen0Sec API key" does nothing without
   one.
 - Not covered here: `daemon`, `ml`, `bpf_capacity`, `graceful_restart` and the
-  `logging.cef` output.
+  `logging.cef` output. Within sections: proxy `trusted_proxies`,
+  `trust_lb_tls_headers`, `redis`, `request_validation_status`,
+  `default_cert_path` / `default_key_path`, `penalty_sync` and
+  `waf_firewall_offload`; `capture.observe_*`; `firewall.urpf`;
+  `ids.managed_rules_base_url`; the `platform` endpoint overrides.

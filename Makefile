@@ -6,7 +6,7 @@ export SYNAPSE_BIN
 .PHONY: help install lint test test-check fmt clean
 
 help: ## List the targets
-	@/usr/bin/grep -hE '^[a-zA-Z_-]+:.*## ' $(MAKEFILE_LIST) | awk -F':.*## ' '{printf "  %-12s %s\n", $$1, $$2}'
+	@grep -hE '^[a-zA-Z_-]+:.*## ' $(MAKEFILE_LIST) | awk -F':.*## ' '{printf "  %-12s %s\n", $$1, $$2}'
 
 install: ## Install the lint tooling (yamllint, pinned in requirements-dev.txt)
 	pip install -r requirements-dev.txt
@@ -14,7 +14,7 @@ install: ## Install the lint tooling (yamllint, pinned in requirements-dev.txt)
 lint: ## Lint every YAML file
 	yamllint .
 
-test: ## Check every config set with `synapse --check-config` (set SYNAPSE_BIN)
+test: test-check ## Run the controls, then check every config set with `synapse --check-config` (set SYNAPSE_BIN)
 	scripts/check.sh
 
 test-check: ## Run the controls that prove scripts/check.sh can fail
