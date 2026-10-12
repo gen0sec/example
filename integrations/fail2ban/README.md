@@ -1,6 +1,6 @@
 # Fail2Ban
 
-A Fail2Ban action that reports banned IP addresses to the Gen0Sec API.
+A Fail2Ban action that reports banned IP addresses to the Gen0Sec Signal API (`POST /v2/signal`).
 
 ## Flow diagram
 ![Gen0Sec architecture](./fail2ban.svg)
@@ -54,14 +54,20 @@ The `integrations/fail2ban/` directory contains a Fail2Ban action file that inte
 
 - `curl` (required)
 - `jq` (optional, for JSON parsing)
-- Gen0Sec API token (available from your Gen0Sec dashboard)
+- Gen0Sec API token with the `signal:write` permission (available from your Gen0Sec dashboard)
 
 ### Configuration Options
 
 - `g0stoken`: Your Gen0Sec API Bearer token
-- `expiration`: Block expiration time in seconds (default: 600 = 10 minutes)
+- `expiration`: Block expiration time in seconds (default: the jail's `bantime`)
 
-When an IP is banned, it will be automatically reported to Gen0Sec and blocked via the API. Unban actions will also be sent to remove the block.
+When an IP is banned, the action creates a Gen0Sec access rule that blocks it, with the reference `fail2ban-<jail>-<ip>`. When Fail2Ban unbans the IP, the action deletes that rule.
+
+Expiration is handled by the API as follows:
+
+- The rule expires after `expiration` seconds, so Gen0Sec lifts the block on its own even if the unban never reaches the API.
+- A value below 60 is raised to 60, and 0 means one day.
+- A negative value is rejected, so a jail with a permanent ban (`bantime = -1`) needs `expiration` set to a positive number.
 
 ### Ansible Playbook
 
