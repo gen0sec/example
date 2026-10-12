@@ -8,14 +8,20 @@ services:
       - "/etc/synapse/config.yaml"
       - "--security-rules-config"
       - "/etc/synapse/security_rules.yaml"
+    # Not set by default. With a Gen0Sec API key the rules in
+    # security_rules.yaml are no longer read (see README):
+    #   API_KEY=... docker compose up
+    environment:
+      API_KEY: ${API_KEY:-}
     ports:
       - "8080:8080"
       - "8443:8443"
     volumes:
-      - ./config.yaml:/etc/synapse/config.yaml:ro
-      - ./upstreams.yaml:/etc/synapse/upstreams.yaml:ro
-      - ./security_rules.yaml:/etc/synapse/security_rules.yaml:ro
-      - ./certs:/etc/synapse/certs:ro
+      # The whole directory, not single files, so that an edit to a rule file
+      # is seen and reloaded while Synapse runs. This also brings in certs/.
+      - .:/etc/synapse:ro
+      # Block events (events.log) land here.
+      - ./logs:/var/log/synapse
     depends_on:
       - whoami
 
