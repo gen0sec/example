@@ -15,7 +15,8 @@ is at [docs.gen0sec.com](https://docs.gen0sec.com).
 ### Available now
 
 - [Fail2Ban](./integrations/fail2ban/): a Fail2Ban action that reports banned
-  IP addresses to the Gen0Sec API, with an Ansible playbook to roll it out.
+  IP addresses to the Gen0Sec API. The Ansible role that rolls it out lives in
+  [gen0sec/ansible-playbook](https://github.com/gen0sec/ansible-playbook).
 
 ### Being updated
 
