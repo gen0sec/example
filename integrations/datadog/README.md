@@ -1,5 +1,7 @@
 # Datadog Security Workflow
 
+> **Being updated: do not use this workflow yet.** Its block step points at a retired endpoint, so blocking an IP from Datadog fails.
+
 A Datadog workflow that automatically responds to security signals by extracting malicious IP addresses and services, creating an investigative notebook, and notifying security responders via Slack. Responders can then choose to either block the IPs directly in Gen0Sec or create a security incident for further investigation.
 
 ## Features
