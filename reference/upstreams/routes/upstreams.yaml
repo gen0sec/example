@@ -6,7 +6,7 @@ hosts:
   api.example.com:
     tls:
       terminate:
-        cert: /etc/synapse/certs/api.example.com.crt
+        cert: api.example.com
     paths:
       # Order of matching: the exact path, then expression routes (in key order),
       # then the longest prefix, then "/".
