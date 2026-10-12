@@ -1,0 +1,14 @@
+access_rules:
+  id: "local-rules"
+  name: "Local Access Rules"
+  description: "typo fixture"
+  allow:
+    ips: ["192.0.2.1"]
+    country: []
+    asn: []
+  block:
+    ips: []
+    country: []
+    asn: []
+waf_rules:
+  rules: []

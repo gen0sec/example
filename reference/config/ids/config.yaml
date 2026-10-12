@@ -57,5 +57,6 @@ ids:
   #   enforce: false
 
   # With a Gen0Sec API key, the platform can deliver managed rule bundles:
-  # managed_rules_path: "/var/lib/synapse/managed.rules"
+  # managed_rules_path: "/var/lib/synapse/managed.rules"   # Default: <working dir>/managed.rules,
+  #                                                        # or /var/lib/synapse if the working dir is /
   # managed_rules_refresh_secs: 3600   # 0 = push only

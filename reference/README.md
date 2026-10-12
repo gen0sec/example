@@ -26,6 +26,9 @@ know the key names are right. For a complete, runnable setup, see
 SYNAPSE_BIN=/path/to/synapse make test
 ```
 
+`--check-config` arrives in the next Synapse release; no release has it yet, so
+use a build that does. CI does not run this check yet.
+
 `make test` runs `synapse --check-config` on every config set and fails on an
 error, on a warning (an unknown key is a warning) and on a missing binary. A
 config set is a directory with a `config.yaml`, plus an `upstreams.yaml` and a

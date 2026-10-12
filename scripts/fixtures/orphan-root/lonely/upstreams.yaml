@@ -1,0 +1,6 @@
+version: 2
+hosts:
+  example.com:
+    tls:
+      passthrough: true
+    upstream: 192.0.2.10:443
