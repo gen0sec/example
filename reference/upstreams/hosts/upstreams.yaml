@@ -48,7 +48,9 @@ hosts:
   #     terminate:
   #       acme: { challenge_type: dns-01, wildcard: true }
 
-  # A wildcard name. Exact names win over wildcards.
+  # A wildcard name. Exact names win over wildcards. On a wildcard host, cert is
+  # not used to pick the certificate: Synapse serves a loaded certificate whose
+  # CN/SAN covers the requested name (here *.apps.example.com), else the default.
   "*.apps.example.com":
     tls:
       terminate:
