@@ -26,8 +26,8 @@ is at [docs.gen0sec.com](https://docs.gen0sec.com).
   security signals. It is being updated: its block step points at a retired
   endpoint, so do not use it yet.
 
-Synapse configuration examples are being added. `reference/` is available;
-`use-cases/` will appear here when it is ready.
+Synapse configuration examples are being added: `reference/` is complete, and
+more use cases are on the way.
 
 Config sets are checked with `synapse --check-config`, which arrives in the
 next Synapse release (no release has it yet). With a build that has it, run
