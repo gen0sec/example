@@ -1,0 +1,36 @@
+# Access rules: allow and block by source address, country or ASN. They are
+# checked before the WAF rules and before any request is parsed.
+#
+# `access_rules` and `waf_rules` are both required keys, so even a file that
+# only uses access rules carries an (empty) waf_rules.
+access_rules:
+  id: "example-access"
+  name: "Example access rules"
+  description: "Allow list, block list and per-country / per-ASN ranges"
+
+  # `ips`, `country` and `asn` must all be present in both lists, even if empty.
+  allow:
+    ips:
+      - "127.0.0.1"
+      - "::1"
+      - "10.0.0.0/8"          # RFC 1918, an internal network
+    country: []
+    asn: []
+
+  block:
+    ips:
+      - "192.0.2.1"           # a single address (RFC 5737 TEST-NET-1)
+      - "198.51.100.0/24"     # a CIDR range (TEST-NET-2)
+      - "2001:db8::/32"       # IPv6 documentation range
+    # Country and ASN entries are a list of one-key maps: the code or number
+    # maps to the ranges that belong to it. Without a threat-intelligence
+    # feed you supply the ranges yourself.
+    country:
+      - XX:
+          - "203.0.113.0/25"
+    asn:
+      - "64496":              # an ASN reserved for documentation
+          - "203.0.113.128/25"
+
+waf_rules:
+  rules: []

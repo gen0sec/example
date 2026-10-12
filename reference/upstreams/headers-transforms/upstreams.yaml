@@ -1,0 +1,58 @@
+# Headers and transforms, layered global -> host -> route. For the same header
+# the most specific level wins. Request headers go upstream only, response
+# headers go to the client only.
+version: 2
+
+# JA4 fingerprints sent upstream as G0S-JA4, G0S-JA4T, ... Default: true.
+# header_names: g0s (default) | legacy (X-JA4*) | both. Client-sent G0S-* and
+# X-JA4* headers are removed unless the peer is in proxy.trusted_proxies.
+proxy:
+  fingerprints:
+    forward: true
+    header_names: g0s
+
+# Plain header lists, "Name: value".
+headers:
+  response:
+    - "Strict-Transport-Security: max-age=31536000; includeSubDomains"
+  request:
+    - "X-Forwarded-Proto: https"
+
+# Transforms: remove, set, add; optionally conditional (`when`) and computed
+# (`set_expr`, `add_expr`), using the same expression language as WAF rules.
+# Within a rule: remove, then set/set_expr, then add/add_expr. Rules run in order,
+# and a later level's rules run after an earlier one's. A trailing * in `remove`
+# matches by prefix. Framing headers (Content-Length, Connection, ...) must not be
+# named (the proxy refuses such a rule). Transforms are NOT validated by --check-config.
+transforms:
+  response_headers:
+    - remove: ["Server", "X-Powered-By"]
+
+hosts:
+  www.example.com:
+    tls:
+      terminate:
+        cert: /etc/synapse/certs/www.example.com.crt
+    headers:
+      response:
+        - "X-Frame-Options: DENY"       # extends the global list
+    transforms:
+      request_headers:
+        - remove: ["X-Debug", "X-Internal-*"]
+        - when: 'starts_with(http.request.path, "/api")'
+          set:
+            X-Api: "yes"
+        - set_expr:
+            X-Client-Ip: to_string(ip.src)
+      response_headers:
+        - add:
+            Set-Cookie: "b=2; Path=/"       # `add` appends; a list adds several
+        - when: 'http.response.status == 302'
+          set_expr:
+            Location: 'regex_replace(http.response.headers["location"][0], "^http://", "https://")'
+    paths:
+      "/":
+        upstream: 10.0.0.30:8080
+        headers:
+          request:
+            - "Host: backend.example.com"   # route level beats host and global

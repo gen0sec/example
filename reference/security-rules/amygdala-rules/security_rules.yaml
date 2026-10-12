@@ -1,0 +1,30 @@
+# Amygdala rules: block or allow by TLS / TCP fingerprint (JA4 family) and
+# source address. The key in the rules file is `smart_firewall_rules`.
+# They are enforced only when the amygdala feature is on (see config.yaml).
+#
+# Two entry shapes are accepted in `block` and `allow`:
+#   {kind, value}        a fingerprint: kind is ja4, ja4s, ja4t, ja4ts, ja4l,
+#                        ja4ls, ja4h, ja4x or ja4ssh; value may use * and ?
+#   {id, expression}     a wirefilter expression (also under `rules:`)
+# Any entry may carry ttl_seconds, or expires_at (RFC 3339), but not both.
+access_rules:
+  id: "example-amygdala"
+  name: "Example"
+  description: "Access rules are required by the file format; none are set here"
+  allow: { ips: [], country: [], asn: [] }
+  block: { ips: [], country: [], asn: [] }
+
+waf_rules:
+  rules: []
+
+smart_firewall_rules:
+  block:
+    - kind: ja4t
+      value: "64240_2-4-8-1-3_1460_10"
+      ttl_seconds: 3600
+    - id: "block-botnet-range"
+      expression: 'ip.src in 198.51.100.0/24'
+  allow:
+    - id: "allow-office"
+      expression: 'ip.src in 10.1.0.0/16'
+      action: "allow"

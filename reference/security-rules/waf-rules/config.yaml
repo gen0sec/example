@@ -1,0 +1,8 @@
+# Main config for this rules set. security_rules.yaml sits beside it and is
+# loaded from the path in the agent's security-rules option (`make test` passes
+# the file with --security-rules-config).
+mode: proxy
+
+proxy:
+  listeners:
+    - { name: http, address: "0.0.0.0:8080", mode: http }
