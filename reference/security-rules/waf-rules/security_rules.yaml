@@ -1,6 +1,7 @@
 # WAF rules. Each rule has an action and a wirefilter expression. Rules are
 # evaluated in file order and the first match wins, so an `allow` rule stops
-# every rule below it from being considered.
+# every rule below it from being considered. The exception is `content_scanning`:
+# it is not terminal, it marks the request and evaluation continues.
 #
 # Expressions use the function form for string tests:
 #   starts_with(http.request.path, "/admin")      accepted
@@ -36,7 +37,7 @@ waf_rules:
       org_id: "example"
       description: "Obvious injection strings in the query or body"
       action: "block"
-      expression: 'http.request.query contains "UNION SELECT" or http.request.body contains "DROP TABLE"'
+      expression: 'lower(url_decode(http.request.query)) matches "union[+ ]+select" or lower(url_decode(http.request.body)) matches "drop[+ ]+table"'
 
     # challenge: serve a captcha and let the client through once it is solved.
     # Needs proxy.captcha in config.yaml (provider, keys, jwt_secret).

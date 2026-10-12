@@ -32,9 +32,6 @@ hosts:
         normalize_path: false
         max_header_count: 200
 
-# Synapse-served paths (captcha verify, ACME challenge, health), across all
-# terminating hosts. Point them at proxy.internal_services in config.yaml.
-internal:
-  - path: /health
-    upstream: 127.0.0.1:9180
-    access_log: false
+# Not set here: /health, /.well-known/acme-challenge/* and the captcha verify path
+# are served on every host automatically, from proxy.internal_services in
+# config.yaml. The v2 `internal:` block is validated and then ignored; do not use it.

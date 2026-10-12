@@ -8,7 +8,9 @@ proxy:
     - { name: http, address: "0.0.0.0:8080", mode: http }
 
 # Amygdala is off by default and needs a build with the matching feature plus
-# `enabled: true`. It needs firewall.mode auto or xdp. Fingerprint rules are
+# `enabled: true`. firewall.mode auto or xdp is required only when
+# network.interfaces scopes the agent to some interfaces; without it, auto falls
+# back to nftables, then iptables, when XDP is unavailable. Fingerprint rules are
 # only enforced while it runs.
 firewall:
   mode: auto

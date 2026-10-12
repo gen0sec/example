@@ -1,5 +1,6 @@
-# Access rules: allow and block by source address, country or ASN. They are
-# checked before the WAF rules and before any request is parsed.
+# Access rules: allow and block by source address, country or ASN. Kernel
+# enforcement, where it is on, acts before any request is parsed. The proxy's own
+# check runs after the request head is parsed and before the WAF rules.
 #
 # `access_rules` and `waf_rules` are both required keys, so even a file that
 # only uses access rules carries an (empty) waf_rules.
