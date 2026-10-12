@@ -1,0 +1,61 @@
+# ids: inline intrusion detection with Suricata-format rules.
+mode: agent
+
+ids:
+  # Default: false.
+  enabled: true
+
+  # Backend. Default: xdp. afpacketrecv (alias afpacket) uses plain AF_PACKET
+  # for legacy kernels; blocks then go through iptables/nftables.
+  capture_mode: xdp
+
+  # Rule files or globs, loaded and reloaded on change. Default: [] (none).
+  rule_paths:
+    - "/etc/synapse/rules/*.rules"
+
+  # Suricata variables the rules use ($HOME_NET, $HTTP_PORTS, ...).
+  # Default: {} (the rules' own defaults).
+  address_vars:
+    HOME_NET: "[10.0.0.0/8,172.16.0.0/12,192.168.0.0/16]"
+    EXTERNAL_NET: "!$HOME_NET"
+  port_vars:
+    HTTP_PORTS: "80"
+
+  # Ban the source of a matching flow. Default: false (alert only). Keep it
+  # false until the rules are tuned: behind NAT one source is many users.
+  enforce_block: false
+
+  # Drop only the offending flow's two addresses, as soon as a drop/reject
+  # rule matches. Independent of enforce_block. Default: false.
+  enforce_edge_drop: false
+
+  # Flow table and engine pacing. Defaults shown.
+  snaplen: 512
+  poll_timeout_ms: 100
+  flow_timeout_secs: 120
+  max_flows: 200000
+  cleanup_interval_secs: 30
+  stats_log_interval_secs: 5
+
+  # Advanced, all optional (defaults shown):
+  # ban_base_secs: 60              # floor for adaptive bans; below 60 is raised to 60
+  # egress_ifaces: ["auto"]        # extra interfaces for egress capture
+  # bypass:                        # stop inspecting a flow once it is judged
+  #   enabled: false
+  #   threshold_packets: 100
+  #   depth_bytes: 1048576
+  #   depth_packets: 0             # 0 = off
+  # consumer:                      # XDP consumer threads
+  #   inspect_threads: 8
+  #   inspect_channel_cap: 131072
+  #   ringbuf_batch_limit: 2048
+  #   cpu_affinity: false
+  #   cpu_affinity_start: 0
+  # post_tls:                      # decrypted-HTTP inspection on the proxy
+  #   mode: inline                 # inline | offload | off
+  #   socket: "/run/synapse/ids-l7.sock"
+  #   enforce: false
+
+  # With a Gen0Sec API key, the platform can deliver managed rule bundles:
+  # managed_rules_path: "/var/lib/synapse/managed.rules"
+  # managed_rules_refresh_secs: 3600   # 0 = push only

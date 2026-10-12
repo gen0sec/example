@@ -1,0 +1,30 @@
+# network: which interfaces Synapse attaches to.
+# Defaults below are the code defaults; a key left out takes them.
+mode: agent
+
+network:
+  # Interface for the XDP program. Default "auto": only physical, UP uplinks
+  # (loopback, veth, bridges, tunnels and CNI devices are skipped).
+  # Set a name (eth0) to force one interface.
+  iface: auto
+
+  # Explicit interface list; overrides `iface` when non-empty. Entries are
+  # attached as-is, so this is how you opt in to a virtual interface.
+  # Default: [] (empty).
+  ifaces: []
+
+  # IP versions to process. Default: auto.
+  ip_version: auto
+
+  # Per-interface features. When set it replaces `iface` / `ifaces` (leave
+  # those unset) and ONLY the matched links are attached. Match a link by
+  # exactly one of `name`, `mac` or `pattern` (a glob over names).
+  # Features: firewall, ids, ids_egress, smart_firewall, fingerprint. Each
+  # still needs its global switch (firewall.mode, ids.enabled, ...), and the
+  # firewall mode must be auto or xdp. Default: unset.
+  # interfaces:
+  #   wan:
+  #     match: { name: eth1 }
+  #     features: [firewall, ids]
+  #   oob:
+  #     match: { mac: "52:54:00:12:34:56" }   # listed, nothing enabled

@@ -1,0 +1,15 @@
+extends: default
+
+rules:
+  # Examples carry long explanatory comments and one-line flow maps.
+  line-length: disable
+  document-start: disable
+  comments:
+    min-spaces-from-content: 1
+  comments-indentation: disable
+  truthy:
+    check-keys: false
+    # Ansible playbooks use yes/no.
+    allowed-values: ['true', 'false', 'yes', 'no']
+  braces:
+    max-spaces-inside: 1

@@ -1,0 +1,4 @@
+# Control fixture: `bogus` is not a valid mode. The check must fail on it.
+mode: bogus
+network:
+  iface: lo

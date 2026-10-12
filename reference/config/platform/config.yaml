@@ -1,0 +1,43 @@
+# platform: the connection to the Gen0Sec platform, and the data feeds that
+# come with it. Without an API key Synapse runs from local files only.
+mode: agent
+
+platform:
+  # Standalone: leave empty. Never commit a real key to a file like this one.
+  # With a Gen0Sec API key: set it here or in the API_KEY environment variable.
+  api_key: ""
+
+  # With a Gen0Sec API key: send telemetry to the platform. Default: true.
+  telemetry_sending_enabled: false
+
+  # GeoIP lookups (country and ASN) for access rules and logs. Default: enabled.
+  # Synapse reads one combined country+ASN MMDB file at country.path and
+  # refreshes it from country.url when a url is set.
+  geoip:
+    enabled: true
+    refresh_secs: 28800        # Default: 28800 (8 hours)
+    country:
+      path: "/var/lib/synapse/ipinfo_lite.mmdb"
+      # url: "https://downloads.example.com/ipinfo_lite.mmdb"   # your own source
+
+  # The keys below need a Gen0Sec API key. Defaults are the code defaults.
+  # base_url: "https://api.gen0sec.com/v1"
+  # include_response_body: false       # access logs may then hold PII or tokens
+  # max_body_size: 1048576             # bytes of body kept in access logs
+  # threat:                            # threat-intelligence database
+  #   enabled: true
+  #   refresh_secs: 300
+  # ban_ledger:                        # upload the bans this agent decided
+  #   enabled: false
+  #   interval_secs: 300
+  # fleet_bans:                        # download bans corroborated across agents
+  #   enabled: false
+  #   refresh_secs: 300
+  #   advisory: true                   # count and log only
+  #   enforce: false                   # true: install them in the kernel filter
+  # service_graph:                     # east-west service graph upload
+  #   enabled: false
+  #   interval_secs: 300
+  # identity:                          # workload-identity database
+  #   enabled: true
+  #   url: ""
