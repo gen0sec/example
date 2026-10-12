@@ -57,10 +57,14 @@ The `integrations/fail2ban/` directory contains a Fail2Ban action file that inte
 - `jq` (optional, for JSON parsing)
 - Gen0Sec API token with the `signal:write` permission (available from your Gen0Sec dashboard)
 
+**Upgrading from the earlier action:** it used the v1 Signal API, which needed no particular permission. Check that your key has the `signal:write` permission before you replace the file; without it every ban is refused, and Fail2Ban logs `Error banning`.
+
 ### Configuration Options
 
 - `g0stoken`: Your Gen0Sec API Bearer token
 - `expiration`: Block expiration time in seconds (default: the jail's `bantime`)
+
+A ban, unban or prolong that the API does not accept with HTTP 200 fails, and Fail2Ban logs it as an error. That covers a key without the permission, an entry the API rejects, and an unreachable API.
 
 When an IP is banned, the action creates a Gen0Sec access rule that blocks it, with the reference `fail2ban-<jail>-<ip>`. When Fail2Ban unbans the IP, the action deletes that rule.
 
@@ -69,6 +73,14 @@ Expiration is handled by the API as follows:
 - The rule expires after `expiration` seconds, so Gen0Sec lifts the block on its own even if the unban never reaches the API.
 - A value below 60 is raised to 60, and 0 means one day.
 - A negative value is rejected, so a jail with a permanent ban (`bantime = -1`) needs `expiration` set to a positive number.
+
+### Testing the action
+
+`test/test_action.py` renders the action with Fail2Ban's own code and runs it against a local mock of the Signal API. It checks that a ban, unban or prolong succeeds only when the API answers 200. It needs the Fail2Ban Python package and sends nothing to Gen0Sec:
+
+```bash
+python3 test/test_action.py
+```
 
 ### Ansible Playbook
 
