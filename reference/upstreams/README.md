@@ -12,15 +12,19 @@ set that `synapse --check-config` accepts: a `config.yaml` (proxy mode) and an
 | [`headers-transforms/`](./headers-transforms/upstreams.yaml) | Header lists layered global, host and route; `transforms`; fingerprint headers |
 | [`load-balancing/`](./load-balancing/upstreams.yaml) | Weights, `lb.method`, health checks, timeouts, sticky sessions |
 | [`passthrough/`](./passthrough/upstreams.yaml) | TLS by SNI, plain HTTP by Host, both wires, PROXY protocol v2, tunnel limits |
-| [`limits/`](./limits/upstreams.yaml) | `normalize_path`, URL and header limits, method allow-lists, `internal` paths |
+| [`limits/`](./limits/upstreams.yaml) | `normalize_path`, URL and header limits, method allow-lists |
 
 ## Things to know
 
-- Every terminating host needs `tls.terminate` (a `cert`, or `acme`). A
-  host cannot set both `upstream`/`upstreams` and `paths`.
+- Every terminating host needs `tls.terminate` (a `cert`, or `acme`; `tls.terminate: {}`
+  is accepted too). A host cannot set both `upstream`/`upstreams` and `paths`.
 - Certificate files named here are not read by `--check-config`, so the
   paths in these sets are placeholders. Neither are listener names checked.
-- A key written wrongly is rejected (the v2 parser refuses unknown keys).
+- A key written wrongly is rejected (the v2 parser refuses unknown keys), with
+  exceptions: a misspelled key inside `rewrite`, `redirect` or an entry of a
+  weighted `upstreams` list is silently ignored.
+- The per-set `config.yaml` files are identical on purpose, so each set differs
+  only in its `upstreams.yaml`.
 - `transforms` expressions are compiled when the proxy starts, not by
   `--check-config`. `match_expr` is compiled by the check.
 - Backends use RFC 1918 addresses and `example.com` names. Replace them.

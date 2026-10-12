@@ -1,11 +1,14 @@
 # 5-tuple firewall rules. They are a TOP-LEVEL key of the rules file, not
 # nested under `firewall:` in config.yaml, and apply to every available
-# backend (BPF, iptables, nftables). All values are strings.
+# backend (BPF, iptables, nftables). Every value is a string except
+# ttl_seconds, which is a number.
 #
 #   src_ip / dst_ip     IP or CIDR, v4 or v6 (unset = any); a rule may not mix families
 #   src_port / dst_port "22" or "8000-9000"  (unset = any)
 #   protocol            tcp | udp | icmp | icmpv6 | any   (default tcp)
 #   action              block | allow | reject             (default block)
+#                       `reject` is honoured only by iptables; the BPF
+#                       backends drop instead.
 #   direction           ingress | egress | both            (default ingress)
 #   ttl_seconds         auto-expire after N seconds        (unset or 0 = permanent)
 access_rules:
@@ -21,12 +24,13 @@ waf_rules:
 firewall_rules:
   rulesets:
     # Object form with a priority. Rulesets run in order and the first
-    # matching rule wins; lower priority runs first. This carve-out beats the
-    # broad block below although it sorts later by name.
-    allow-jumphost-ssh:
+    # matching rule wins; lower priority runs first. This allow overlaps the
+    # broader block below (the jump host is inside the blocked range) and wins
+    # because of its priority, although it sorts after it by name.
+    zz-allow-jumphost-ssh:
       priority: 10
       rules:
-        - src_ip: "10.0.0.5"
+        - src_ip: "198.51.100.7"
           dst_port: "22"
           protocol: "tcp"
           action: "allow"

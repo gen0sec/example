@@ -43,4 +43,6 @@ hosts:
         upstream: 10.0.0.23:8080
         max_body_size: 52428800       # bytes
         disable_access_log: false
-        http2_enabled: true           # these three are per-route options
+        # These two are per-route options. `http2_enabled: true` is also one, but on
+        # a cleartext backend it means HTTP/2 prior knowledge (h2c) and breaks an
+        # HTTP/1 origin, so it is left out.

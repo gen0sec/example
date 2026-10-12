@@ -12,7 +12,7 @@ hosts:
     # Prepend a PROXY protocol v2 header so the backend sees the client address.
     # Passthrough hosts only; a terminating host rejects it.
     proxy_protocol_v2: true
-    idle_timeout: 3600       # seconds of silence before a tunnel closes; 0 = no bound. Default: none
+    idle_timeout: 3600       # seconds of silence before a tunnel closes; 0 = no bound. Default: 3600 (one hour)
     max_connections: 500     # concurrent tunnels for this host. Default: no cap
 
   # Wildcard SNI.

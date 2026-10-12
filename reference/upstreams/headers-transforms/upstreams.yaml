@@ -16,7 +16,7 @@ headers:
   response:
     - "Strict-Transport-Security: max-age=31536000; includeSubDomains"
   request:
-    - "X-Forwarded-Proto: https"
+    - "X-Edge: synapse"
 
 # Transforms: remove, set, add; optionally conditional (`when`) and computed
 # (`set_expr`, `add_expr`), using the same expression language as WAF rules.
