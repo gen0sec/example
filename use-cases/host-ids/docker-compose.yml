@@ -2,7 +2,7 @@
 # https://docs.gen0sec.com/docs/client/installation
 services:
   synapse:
-    image: registry.gen0sec.com/gen0sec/synapse:0.8.7
+    image: registry.gen0sec.com/gen0sec/synapse:0.8.8
     # Host network, so the agent sees the host's interfaces.
     network_mode: host
     cap_add:
@@ -10,6 +10,12 @@ services:
       - NET_ADMIN
       - BPF
       - SYS_ADMIN
+    # The agent locks memory for its packet and BPF buffers; the default memlock
+    # limit is too low.
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
     command: ["-c", "/etc/synapse/config.yaml"]
     volumes:
       - ./config.yaml:/etc/synapse/config.yaml:ro

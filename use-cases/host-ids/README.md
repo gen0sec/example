@@ -81,15 +81,18 @@ Look for `"event_type":"alert"`, `"signature_id":1000001` and the signature text
 seconds, so the file is not empty before the first alert.
 
 Seen on a test run: the timestamp of an alert was `1970-01-01...` (an offset
-since the capture started, not the wall clock), and an ICMP alert has no
-`src_ip` or `dest_ip` fields. Use the `stats` records' timestamps for time.
+since the capture started, not the wall clock), and alerts on loopback traffic
+carry no `src_ip` or `dest_ip`; on a real interface they do. Use the `stats`
+records' timestamps for time. `stats` records need Synapse 0.8.8 or later,
+which is the version the compose file pins.
 
 ## With a Gen0Sec API key
 
 Everything above runs without a key. With a key, the platform can deliver
-managed IDS rule bundles, which the agent writes to a file and loads next to
-your local `rule_paths`. This example turns that off with
-`managed_rules_path: ""`; remove that line when you use a key. See the
+managed IDS rule bundles, but only the XDP IDS (`capture_mode: xdp` on an
+interface that supports XDP) loads them. This AF_PACKET example builds its
+ruleset from `rule_paths` alone and cannot use managed rules. Setting
+`managed_rules_path: ""` turns off pulling them. See the
 [documentation](https://docs.gen0sec.com) for setting the key.
 
 ## Limits
@@ -102,4 +105,7 @@ your local `rule_paths`. This example turns that off with
   `xdp`, is faster and needs XDP support on the interface; it falls back to
   AF_PACKET when XDP is unavailable.
 - The test rule is a demo. Add real rules to `rules/` (files ending in
-  `.rules` are picked up and reloaded on change).
+  `.rules` are picked up). They are loaded at start; restart the agent after
+  changing them.
+- Kubernetes (the agent DaemonSet from the synapse-stack chart) is covered by
+  the kubernetes use case, which is coming.

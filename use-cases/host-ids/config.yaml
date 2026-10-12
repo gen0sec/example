@@ -9,11 +9,9 @@ firewall:
 
 capture:
   enabled: true
-  # AF_PACKET TPACKET_V3 ring. Use af_packet_recv on a kernel where the ring
-  # does not work.
-  mode: af_packet
-  # The interface the IDS reads. Change it to your uplink (for example eth0);
-  # `lo` lets you trigger the test rule from the same host.
+  # The interface the IDS opens its own AF_PACKET socket on. Change it to your
+  # uplink (for example eth0); `lo` lets you trigger the test rule from the
+  # same host.
   interface: lo
 
 ids:
