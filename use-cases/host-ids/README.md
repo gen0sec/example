@@ -86,11 +86,16 @@ carry no `src_ip` or `dest_ip`; on a real interface they do. Use the `stats`
 records' timestamps for time. `stats` records need Synapse 0.8.8 or later,
 which is the version the compose file pins.
 
+The startup WARN that mentions `ids.capture_mode=xdp` is expected with this
+config: it comes from the XDP IDS worker not starting, and the AF_PACKET IDS runs.
+
 ## With a Gen0Sec API key
 
 Everything above runs without a key. With a key, the platform can deliver
-managed IDS rule bundles, but only the XDP IDS (`capture_mode: xdp` on an
-interface that supports XDP) loads them. This AF_PACKET example builds its
+managed IDS rule bundles, but only the XDP IDS loads them. It needs
+`ids.capture_mode: xdp`, a `firewall.mode` other than `none`, and an interface
+that supports XDP. With `firewall.mode: none` the agent loads no BPF or XDP, and
+`capture_mode: xdp` falls back to the AF_PACKET IDS without managed rules. This AF_PACKET example builds its
 ruleset from `rule_paths` alone and cannot use managed rules. Setting
 `managed_rules_path: ""` turns off pulling them. See the
 [documentation](https://docs.gen0sec.com) for setting the key.
@@ -99,8 +104,10 @@ ruleset from `rule_paths` alone and cannot use managed rules. Setting
 
 - Alert only: `enforce_block` is `false`. Do not turn it on before the rules
   are tuned, because behind NAT one source address can be many users.
-- This example reads one interface. With `capture.interface` unset the agent
-  binds to all interfaces.
+- The IDS reads the one interface in `capture.interface`. `capture.enabled:
+  false` keeps the agent from also attaching its fingerprinting probes (a TC
+  SSH-fingerprint collector on the host uplink, SSL uprobes on libssl). With
+  `capture.interface` unset the IDS binds to all interfaces.
 - The `capture_mode: afpacketrecv` IDS is the portable path. The default,
   `xdp`, is faster and needs XDP support on the interface; it falls back to
   AF_PACKET when XDP is unavailable.
