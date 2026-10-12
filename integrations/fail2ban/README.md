@@ -7,14 +7,14 @@ This directory contains example integrations and configurations for Gen0Sec.
 
 ## Fail2Ban Integration
 
-The `fail2ban/` directory contains a Fail2Ban action file that integrates with the Gen0Sec API to automatically block malicious IP addresses.
+The `integrations/fail2ban/` directory contains a Fail2Ban action file that integrates with the Gen0Sec API to automatically block malicious IP addresses.
 
 ### Setup
 
 1. Copy the action file to your Fail2Ban actions directory:
 
    ```bash
-   curl -fSL https://raw.githubusercontent.com/gen0sec/example/refs/heads/main/fail2ban/gen0sec.conf -o /etc/fail2ban/action.d/gen0sec.conf
+   curl -fSL https://raw.githubusercontent.com/gen0sec/example/refs/heads/main/integrations/fail2ban/gen0sec.conf -o /etc/fail2ban/action.d/gen0sec.conf
    ```
 
 2. Set appropriate permissions (the file contains your API token):
@@ -26,7 +26,7 @@ The `fail2ban/` directory contains a Fail2Ban action file that integrates with t
    ```bash
    sudo nano /etc/fail2ban/action.d/gen0sec.conf
    ```
-   Set the `axtoken` value in the `[Init]` section.
+   Set the `g0stoken` value in the `[Init]` section.
 
 4. Configure your jail to use the Gen0Sec action by editing your jail configuration:
    ```bash
@@ -58,7 +58,7 @@ The `fail2ban/` directory contains a Fail2Ban action file that integrates with t
 
 ### Configuration Options
 
-- `ge0stoken`: Your Gen0Sec API Bearer token
+- `g0stoken`: Your Gen0Sec API Bearer token
 - `expiration`: Block expiration time in seconds (default: 600 = 10 minutes)
 
 When an IP is banned, it will be automatically reported to Gen0Sec and blocked via the API. Unban actions will also be sent to remove the block.
