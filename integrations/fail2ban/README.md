@@ -86,54 +86,11 @@ Expiration is handled by the API as follows:
 python3 test/test_action.py
 ```
 
-### Ansible Playbook
+### Ansible
 
-An Ansible playbook is provided to automate the setup process across multiple servers.
-
-#### Prerequisites
-
-- Ansible 2.9 or later
-- SSH access to target servers with sudo privileges
-
-#### Quick Start
-
-Run these steps from `integrations/fail2ban/`.
-
-1. **Set up inventory file:**
-   ```bash
-   cp hosts.example hosts
-   # Edit hosts and add your server details
-   ```
-
-2. **Configure variables:**
-   ```bash
-   mkdir -p group_vars
-   cp group_vars/all.example.yml group_vars/all.yml
-   # Edit group_vars/all.yml and set your Gen0Sec API token
-   ```
-
-3. **Run the playbook:**
-   ```bash
-   ansible-playbook playbook.yml
-   ```
-
-   Or pass the API token directly:
-   ```bash
-   ansible-playbook playbook.yml -e gen0sec_api_token=your_token_here
-   ```
-
-#### Playbook Features
-
-- Installs fail2ban and required dependencies (curl, jq)
-- Copies and configures the Gen0Sec action file
-- Writes the API key to `/etc/fail2ban/gen0sec.headers` (mode 0600)
-- Configures jail.local with Gen0Sec integration
-- Supports both Debian/Ubuntu and RedHat/CentOS systems
-- Enables and starts the fail2ban service
-
-#### Variables
-
-- `gen0sec_api_token`: Your Gen0Sec API Bearer token (required)
-- `gen0sec_expiration`: Block expiration time in seconds (default: 600)
-- `fail2ban_jail_enabled`: Enable fail2ban jails (default: true)
-- `fail2ban_backend`: Fail2Ban backend (default: systemd)
+To roll the action out with Ansible, use the `fail2ban` role in
+[gen0sec/ansible-playbook](https://github.com/gen0sec/ansible-playbook/tree/main/roles/fail2ban).
+It installs this same `gen0sec.conf`, writes the API key to
+`/etc/fail2ban/gen0sec.headers` (mode 0600) and wires the jails. Its README
+lists the variables (`fail2ban_enabled`, `gen0sec_api_key`,
+`gen0sec_expiration`, `fail2ban_host`) and shows how to include the role.

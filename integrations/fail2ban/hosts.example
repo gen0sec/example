@@ -1,9 +1,0 @@
-[fail2ban_servers]
-# Example inventory file
-# Replace with your actual server hostnames or IP addresses
-server1 ansible_host=192.168.1.100 ansible_user=admin
-server2 ansible_host=192.168.1.101 ansible_user=admin
-
-# Or use hostnames
-# server1.example.com
-# server2.example.com
