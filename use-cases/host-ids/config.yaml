@@ -8,7 +8,10 @@ firewall:
   mode: none
 
 capture:
-  enabled: true
+  # false turns off the fingerprinting probes (the TC SSH-fingerprint collector
+  # on the auto-selected host uplink, the SSL uprobes on libssl), not the IDS.
+  # The IDS still takes its interface from `capture.interface`.
+  enabled: false
   # The interface the IDS opens its own AF_PACKET socket on. Change it to your
   # uplink (for example eth0); `lo` lets you trigger the test rule from the
   # same host.
