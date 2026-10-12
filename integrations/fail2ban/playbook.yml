@@ -34,11 +34,14 @@
         mode: '0640'
         backup: yes
 
-    - name: Configure Gen0Sec API token
-      ansible.builtin.replace:
-        path: /etc/fail2ban/action.d/gen0sec.conf
-        regexp: '^g0stoken\s*=.*$'
-        replace: 'g0stoken = {{ gen0sec_api_token }}'
+    - name: Write the Gen0Sec API key header file
+      ansible.builtin.copy:
+        content: "Authorization: Bearer {{ gen0sec_api_token }}\n"
+        dest: /etc/fail2ban/gen0sec.headers
+        owner: root
+        group: root
+        mode: '0600'
+      no_log: true
       when: gen0sec_api_token != ""
 
     - name: Configure Gen0Sec expiration
@@ -46,14 +49,6 @@
         path: /etc/fail2ban/action.d/gen0sec.conf
         regexp: '^expiration\s*=\s*<bantime>.*$'
         replace: 'expiration = {{ gen0sec_expiration }}'
-
-    - name: Ensure token is set in configuration file (fallback)
-      ansible.builtin.lineinfile:
-        path: /etc/fail2ban/action.d/gen0sec.conf
-        regexp: '^g0stoken\s*='
-        line: 'g0stoken = {{ gen0sec_api_token }}'
-        state: present
-      when: gen0sec_api_token != ""
 
     - name: Configure DEFAULT section in jail.local
       ansible.builtin.blockinfile:
