@@ -17,6 +17,8 @@ is at [docs.gen0sec.com](https://docs.gen0sec.com).
 - [Fail2Ban](./integrations/fail2ban/): a Fail2Ban action that reports banned
   IP addresses to the Gen0Sec API. The Ansible role that rolls it out lives in
   [gen0sec/ansible-playbook](https://github.com/gen0sec/ansible-playbook).
+- [Host IDS](./use-cases/host-ids/): agent mode with AF_PACKET capture, local
+  Suricata-format rules and EVE alerts written to a file.
 
 ### Being updated
 
