@@ -8,8 +8,8 @@ know the key names are right. For a complete, runnable setup, see
 | Directory | What it covers | Status |
 |---|---|---|
 | [`config/`](./config/) | One snippet per top-level section of the main config file | Available |
-| `upstreams/` | The upstreams file: routes, load balancing, health checks, passthrough | Coming |
-| `security-rules/` | The security rules file: access, WAF and firewall rules | Coming |
+| [`upstreams/`](./upstreams/) | The upstreams file: routes, load balancing, health checks, passthrough | Available |
+| [`security-rules/`](./security-rules/) | The security rules file: access, WAF, firewall and amygdala rules | Available |
 
 ## How the snippets are written
 

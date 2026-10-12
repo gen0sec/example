@@ -1,0 +1,46 @@
+# Routes: a host's `paths:` map. A key starting with "/" is a path prefix.
+# A route with `match_expr` is chosen by an expression instead, and its key is
+# only a label (the "expr:" prefix is a convention, not required).
+version: 2
+hosts:
+  api.example.com:
+    tls:
+      terminate:
+        cert: /etc/synapse/certs/api.example.com.crt
+    paths:
+      # Order of matching: the exact path, then expression routes (in key order),
+      # then the longest prefix, then "/".
+      "/":
+        upstream: 10.0.0.20:8080
+        force_https: true             # redirect plain HTTP to HTTPS. Default: false
+
+      "/v1":
+        upstream: 10.0.0.21:8080
+        # Rewrite the path sent upstream. $1..$9 are capture groups of match_path;
+        # without match_path the rewrite is unconditional.
+        rewrite:
+          match_path: "^/v1/(.*)"
+          set_path: "/api/$1"
+
+      # A redirect is answered by Synapse itself. status: 301, 302, 303, 307 or
+      # 308 (anything else becomes 302). A route still needs an upstream.
+      "/old":
+        upstream: 10.0.0.20:8080
+        redirect:
+          status: 301
+          location: /new
+
+      # Chosen by an expression. It reads only the path, method, host, query
+      # string and headers (not the body or threat scores). `any(...)` is
+      # for headers, which can repeat. They beat prefix routes, so keep them specific. Expression routes are never probed:
+      # give `type: none` or omit health_check, and say `ssl_enabled` when the
+      # backends do not agree by port (443/8443 are TLS).
+      "expr:canary":
+        match_expr: 'any(http.request.headers["x-canary"][*] eq "1")'
+        upstream: 10.0.0.22:8080
+      "expr:uploads":
+        match_expr: 'http.request.method eq "POST" and http.request.path matches "^/upload/[^/]+$"'
+        upstream: 10.0.0.23:8080
+        max_body_size: 52428800       # bytes
+        disable_access_log: false
+        http2_enabled: true           # these three are per-route options

@@ -1,0 +1,56 @@
+# Hosts: which names are served, how TLS is handled, and the catch-all.
+# Every file starts with `version: 2`. A host is exactly one of: terminating
+# (tls.terminate), or passthrough (see ../passthrough/).
+version: 2
+
+# The host for every name no entry under `hosts:` matches (tried after exact
+# names and wildcards). Without this block such a request is answered 404.
+# It takes no `tls:` block: an unknown name is shown proxy.default_certificate
+# from config.yaml. A bare "*" under `hosts:` is refused.
+default_host:
+  paths:
+    "/":
+      upstream: 10.0.0.10:8080
+      health_check:
+        type: none           # never probe; leaving the block out probes with the global settings
+
+hosts:
+  # Terminate TLS with a static certificate. `key` defaults to the cert's
+  # basename with a .key extension.
+  www.example.com:
+    tls:
+      terminate:
+        cert: /etc/synapse/certs/www.example.com.crt
+        # key: /etc/synapse/certs/www.example.com.key
+    upstream: 10.0.0.11:8080    # one backend for the whole host (a single "/" route)
+
+  # Terminate TLS with a certificate from Let's Encrypt. Needs proxy.acme in
+  # config.yaml. `wildcard: true` also covers *.shop.example.com and needs dns-01;
+  # challenge_type is http-01 (default), dns-01 or tls-alpn-01. `email` overrides
+  # proxy.acme.email for this host.
+  shop.example.com:
+    tls:
+      terminate:
+        acme:
+          challenge_type: dns-01
+          email: admin@example.com
+          wildcard: true
+    upstream: 10.0.0.12:8080
+
+  # A wildcard name. Exact names win over wildcards.
+  "*.apps.example.com":
+    tls:
+      terminate:
+        cert: /etc/synapse/certs/apps.example.com.crt
+    upstream: 10.0.0.13:8080
+
+  # Serve a host on named listeners only (names from proxy.listeners in
+  # config.yaml). On any other listener it is answered 404, like an unknown host.
+  # Default: every listener that could serve it. --check-config does not check
+  # that the names exist.
+  admin.example.com:
+    listeners: [https]
+    tls:
+      terminate:
+        cert: /etc/synapse/certs/admin.example.com.crt
+    upstream: 10.0.0.14:8080

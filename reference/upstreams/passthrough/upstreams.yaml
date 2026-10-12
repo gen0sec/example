@@ -1,0 +1,41 @@
+# Passthrough: Synapse routes by name and copies bytes, without reading the
+# traffic. TLS passthrough routes by SNI on the TLS listener; plain-HTTP
+# passthrough routes by the Host header on the HTTP listener. Terminating and
+# passthrough hosts share the same listener.
+version: 2
+hosts:
+  # TLS by SNI (shorthand for passthrough: { protocol: tls }).
+  db.example.com:
+    tls:
+      passthrough: true
+    upstream: 10.0.0.5:5432
+    # Prepend a PROXY protocol v2 header so the backend sees the client address.
+    # Passthrough hosts only; a terminating host rejects it.
+    proxy_protocol_v2: true
+    idle_timeout: 3600       # seconds of silence before a tunnel closes; 0 = no bound. Default: none
+    max_connections: 500     # concurrent tunnels for this host. Default: no cap
+
+  # Wildcard SNI.
+  "*.internal.example.com":
+    tls:
+      passthrough: true
+    upstream: 192.168.1.100:443
+
+  # One host on both wires, each to its own backend. A wire with no block is
+  # not served (the host answers 404).
+  both.example.com:
+    passthrough:
+      tls:
+        upstream: 10.0.0.6:5432
+      http:
+        upstreams: [10.0.0.6:8080, 10.0.0.7:8080]
+        lb: { method: random }     # round_robin | weighted_round_robin | random only
+      # Probe backends in the background; here interval and thresholds ARE
+      # honoured (defaults: 10s, 3 failures, 2 successes).
+      health_check:
+        type: tcp
+        interval: 5s
+        consecutive_failures: 2
+        consecutive_successes: 1
+    # Serve only on the listeners named (see proxy.listeners in config.yaml).
+    listeners: [https, http]

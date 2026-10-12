@@ -1,0 +1,11 @@
+# Main config for this upstreams set. Routes live in upstreams.yaml, which a
+# running proxy finds through proxy.upstream.conf (shown commented out here;
+# `make test` passes the file with --upstream-conf).
+mode: proxy
+
+proxy:
+  listeners:
+    - { name: http, address: "0.0.0.0:8080", mode: http }
+    - { name: https, address: "0.0.0.0:8443", mode: tls }
+  # upstream:
+  #   conf: "/etc/synapse/upstreams.yaml"

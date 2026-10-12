@@ -1,0 +1,40 @@
+# Limits, path normalisation and method allow-lists. Each can be set globally,
+# per host and per route; the most specific wins, each setting on its own.
+version: 2
+
+# Forward the resolved path upstream (escapes decoded where that cannot change
+# meaning, . and .. removed, // collapsed) instead of the client's spelling.
+# Routing and WAF rules read the resolved path either way. Default: false.
+normalize_path: true
+
+# Largest request target (path + query, bytes) and most header lines. Over the
+# limit: 414 / 431. Default: no limit.
+max_url_length: 8192
+max_header_count: 100
+
+# Methods served; anything else gets 405 with an Allow header. HEAD rides along
+# with GET. Include OPTIONS if an origin answers CORS preflight. Default: all.
+methods: [GET, HEAD, POST, OPTIONS]
+
+hosts:
+  api.example.com:
+    tls:
+      terminate:
+        cert: /etc/synapse/certs/api.example.com.crt
+    max_url_length: 2048             # replaces the global value for this host
+    paths:
+      "/":
+        upstream: 10.0.0.40:8080
+      "/upload":
+        upstream: 10.0.0.41:8080
+        methods: [POST, PUT]          # replaces the list, not extends it
+        max_body_size: 104857600      # bytes, per route
+        normalize_path: false
+        max_header_count: 200
+
+# Synapse-served paths (captcha verify, ACME challenge, health), across all
+# terminating hosts. Point them at proxy.internal_services in config.yaml.
+internal:
+  - path: /health
+    upstream: 127.0.0.1:9180
+    access_log: false

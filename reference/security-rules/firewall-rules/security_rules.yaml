@@ -1,0 +1,46 @@
+# 5-tuple firewall rules. They are a TOP-LEVEL key of the rules file, not
+# nested under `firewall:` in config.yaml, and apply to every available
+# backend (BPF, iptables, nftables). All values are strings.
+#
+#   src_ip / dst_ip     IP or CIDR, v4 or v6 (unset = any); a rule may not mix families
+#   src_port / dst_port "22" or "8000-9000"  (unset = any)
+#   protocol            tcp | udp | icmp | icmpv6 | any   (default tcp)
+#   action              block | allow | reject             (default block)
+#   direction           ingress | egress | both            (default ingress)
+#   ttl_seconds         auto-expire after N seconds        (unset or 0 = permanent)
+access_rules:
+  id: "example-firewall"
+  name: "Example"
+  description: "Access rules are required by the file format; none are set here"
+  allow: { ips: [], country: [], asn: [] }
+  block: { ips: [], country: [], asn: [] }
+
+waf_rules:
+  rules: []
+
+firewall_rules:
+  rulesets:
+    # Object form with a priority. Rulesets run in order and the first
+    # matching rule wins; lower priority runs first. This carve-out beats the
+    # broad block below although it sorts later by name.
+    allow-jumphost-ssh:
+      priority: 10
+      rules:
+        - src_ip: "10.0.0.5"
+          dst_port: "22"
+          protocol: "tcp"
+          action: "allow"
+    # Bare-list form: no priority, so it runs after every prioritised ruleset,
+    # in name order.
+    block-ssh-from-range:
+      - src_ip: "198.51.100.0/24"
+        dst_port: "22"
+        protocol: "tcp"
+        action: "block"
+    # A temporary block that expires by itself, in both directions.
+    temp-block-scanner:
+      - src_ip: "203.0.113.10"
+        protocol: "any"
+        direction: "both"
+        action: "block"
+        ttl_seconds: 3600

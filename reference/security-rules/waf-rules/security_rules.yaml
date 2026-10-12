@@ -1,0 +1,72 @@
+# WAF rules. Each rule has an action and a wirefilter expression. Rules are
+# evaluated in file order and the first match wins, so an `allow` rule stops
+# every rule below it from being considered.
+#
+# Expressions use the function form for string tests:
+#   starts_with(http.request.path, "/admin")      accepted
+#   http.request.path starts_with "/admin"        rejected
+# `contains`, `eq`, `matches` and `in` are infix.
+access_rules:
+  id: "example-waf"
+  name: "Example"
+  description: "Access rules are required by the file format; none are set here"
+  allow: { ips: [], country: [], asn: [] }
+  block: { ips: [], country: [], asn: [] }
+
+waf_rules:
+  rules:
+    # allow: exempt a trusted network from everything below.
+    - id: "waf-allow-office"
+      name: "Allow office network"
+      org_id: "example"
+      description: "Requests from the office range skip the rules below"
+      action: "allow"
+      expression: 'ip.src in {10.1.0.0/16}'
+
+    # block: refuse with 403.
+    - id: "waf-block-admin"
+      name: "Block admin from outside"
+      org_id: "example"
+      description: "The admin area is not reachable from other addresses"
+      action: "block"
+      expression: 'starts_with(http.request.path, "/admin")'
+
+    - id: "waf-block-sqli"
+      name: "Block SQL injection patterns"
+      org_id: "example"
+      description: "Obvious injection strings in the query or body"
+      action: "block"
+      expression: 'http.request.query contains "UNION SELECT" or http.request.body contains "DROP TABLE"'
+
+    # challenge: serve a captcha and let the client through once it is solved.
+    # Needs proxy.captcha in config.yaml (provider, keys, jwt_secret).
+    - id: "waf-challenge-login"
+      name: "Challenge login"
+      org_id: "example"
+      description: "Captcha before the login form is served"
+      action: "challenge"
+      expression: 'http.request.path eq "/login" and http.request.method eq "POST"'
+
+    # ratelimit: at most `requests` per `period` seconds per client; a client
+    # over the limit is refused for `duration` seconds. The values are strings.
+    - id: "waf-ratelimit-api"
+      name: "Rate limit API"
+      org_id: "example"
+      description: "100 requests a minute on /api/"
+      action: "ratelimit"
+      expression: 'starts_with(http.request.path, "/api/")'
+      config:
+        rateLimit:
+          period: "60"
+          duration: "60"
+          requests: "100"
+
+    # content_scanning: send the request body to ClamAV; a signature hit is
+    # blocked with 403. Needs proxy.content_scanning.enabled in config.yaml.
+    # With no such rule loaded, nothing is scanned.
+    - id: "waf-scan-uploads"
+      name: "Scan uploads"
+      org_id: "example"
+      description: "Scan bodies posted to the upload endpoint"
+      action: "content_scanning"
+      expression: 'http.request.method eq "POST" and starts_with(http.request.path, "/upload")'
