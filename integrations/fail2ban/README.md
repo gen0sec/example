@@ -94,3 +94,8 @@ It installs this same `gen0sec.conf`, writes the API key to
 `/etc/fail2ban/gen0sec.headers` (mode 0600) and wires the jails. Its README
 lists the variables (`fail2ban_enabled`, `gen0sec_api_key`,
 `gen0sec_expiration`, `fail2ban_host`) and shows how to include the role.
+
+Coming from the playbook that used to live here: rename `gen0sec_api_token`
+to `gen0sec_api_key` and set `fail2ban_enabled: true`, or the role does
+nothing. `gen0sec_expiration` now defaults to the jail's `bantime` instead of
+600 seconds; set it to keep 600.
