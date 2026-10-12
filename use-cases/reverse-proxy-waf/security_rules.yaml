@@ -1,0 +1,43 @@
+# Access rules and WAF rules for reverse-proxy-waf, loaded from this file
+# because no Gen0Sec API key is set. Rules apply in order, first match wins.
+# A changed file is reloaded while Synapse runs.
+access_rules:
+  id: example-access
+  name: Example access rules
+  description: Static access rules loaded from a local file
+  allow:
+    ips: []
+    country: []
+    asn: []
+  block:
+    # Single addresses and CIDR ranges, IPv4 or IPv6.
+    ips:
+      - "203.0.113.7"
+      - "198.51.100.0/24"
+    country: []
+    asn: []
+
+waf_rules:
+  # Evaluated in order, first match wins. Actions: block, challenge,
+  # ratelimit, content_scanning, allow.
+  rules:
+    - id: waf-block-admin
+      name: Block /admin
+      org_id: example
+      description: Refuse the admin path from every client
+      action: block
+      expression: 'starts_with(http.request.path, "/admin")'
+
+    - id: waf-block-sqli
+      name: Block basic SQL injection
+      org_id: example
+      description: Refuse common SQL injection markers in the decoded query string
+      action: block
+      expression: 'lower(url_decode(http.request.query)) contains "union select" or lower(url_decode(http.request.query)) contains "1=1"'
+
+    - id: waf-block-xss
+      name: Block basic XSS
+      org_id: example
+      description: Refuse script tags in the decoded query string
+      action: block
+      expression: 'lower(url_decode(http.request.query)) contains "<script"'

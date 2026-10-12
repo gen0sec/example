@@ -1,0 +1,17 @@
+# Routes for reverse-proxy-waf. Schema v2.
+version: 2
+
+hosts:
+  # Terminate TLS with a certificate you provide, then proxy to one backend.
+  # `cert` is the file stem in the proxy.certificates directory
+  # (certs/app.example.com.crt and .key). A full path is not matched against
+  # that directory and falls back to the default certificate.
+  app.example.com:
+    tls:
+      terminate:
+        cert: app.example.com
+    paths:
+      "/":
+        # In docker compose this is the demo service; point it at your own
+        # backend (host:port) for a real deployment.
+        upstream: whoami:80

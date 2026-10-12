@@ -9,7 +9,7 @@ is at [docs.gen0sec.com](https://docs.gen0sec.com).
 | Path | What it holds |
 |---|---|
 | [`integrations/`](./integrations/) | Ready-to-use integrations of third-party tools with the Gen0Sec API |
-| `use-cases/` | Complete, runnable Synapse configurations (being added) |
+| [`use-cases/`](./use-cases/) | Complete, runnable Synapse configurations, one directory each |
 | [`reference/`](./reference/) | Short annotated snippets, one per feature: config sections, upstreams and security rules |
 
 ### Available now
@@ -19,6 +19,9 @@ is at [docs.gen0sec.com](https://docs.gen0sec.com).
   [gen0sec/ansible-playbook](https://github.com/gen0sec/ansible-playbook).
 - [Host IDS](./use-cases/host-ids/): agent mode with AF_PACKET capture, local
   Suricata-format rules and EVE alerts written to a file.
+- [Reverse proxy with a WAF](./use-cases/reverse-proxy-waf/): Synapse as a
+  TLS-terminating proxy with WAF and access rules, run as a package or with
+  docker compose, with no API key.
 
 ### Being updated
 
