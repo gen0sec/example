@@ -1,0 +1,24 @@
+# reverse-proxy-waf: Synapse in front of a demo backend.
+# Needs a login to registry.gen0sec.com (see README) and certs/ (see README).
+services:
+  synapse:
+    image: registry.gen0sec.com/gen0sec/synapse:0.8.8
+    command:
+      - "-c"
+      - "/etc/synapse/config.yaml"
+      - "--security-rules-config"
+      - "/etc/synapse/security_rules.yaml"
+    ports:
+      - "8080:8080"
+      - "8443:8443"
+    volumes:
+      - ./config.yaml:/etc/synapse/config.yaml:ro
+      - ./upstreams.yaml:/etc/synapse/upstreams.yaml:ro
+      - ./security_rules.yaml:/etc/synapse/security_rules.yaml:ro
+      - ./certs:/etc/synapse/certs:ro
+    depends_on:
+      - whoami
+
+  # Demo backend: answers with the request it received.
+  whoami:
+    image: traefik/whoami:v1.10.3

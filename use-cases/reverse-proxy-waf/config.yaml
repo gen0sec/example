@@ -1,0 +1,41 @@
+# reverse-proxy-waf: Synapse as a TLS-terminating reverse proxy with a WAF.
+# Runs without a Gen0Sec API key. Routes are in upstreams.yaml, rules in
+# security_rules.yaml (both are named on the command line or below).
+mode: proxy
+
+# The proxy reads no network interface; XDP and the firewall are off.
+firewall:
+  mode: none
+capture:
+  enabled: false
+
+proxy:
+  # Unprivileged ports, so this runs as a normal user and in a container
+  # without extra capabilities. Use 80 and 443 in production (see README).
+  listeners:
+    - { name: http, address: "0.0.0.0:8080", mode: http }
+    - { name: https, address: "0.0.0.0:8443", mode: tls }
+  https_redirect_port: 8443       # where a route with force_https redirects
+
+  # Where routes are defined.
+  upstream:
+    conf: "/etc/synapse/upstreams.yaml"
+
+  # Static certificates: {NAME}.crt / {NAME}.key pairs. The file stem is the
+  # name used by default_certificate and by a host's `tls.terminate.cert`.
+  certificates: "/etc/synapse/certs"
+  default_certificate: app.example.com    # served when no certificate matches the SNI
+
+  # The embedded ACME client is deprecated and stays off (see README).
+  acme:
+    enabled: false
+
+logging:
+  level: info
+  # Console only, so `docker logs` and journald show everything.
+  file_logging_enabled: false
+  # Block decisions, one line each, on stdout.
+  events_log_file: stdout
+  events_log_format: text
+
+# No platform.api_key: rules come from security_rules.yaml.
