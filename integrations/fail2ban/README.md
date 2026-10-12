@@ -1,6 +1,6 @@
-# Example Integrations
+# Fail2Ban
 
-This directory contains example integrations and configurations for Gen0Sec.
+A Fail2Ban action that reports banned IP addresses to the Gen0Sec API.
 
 ## Flow diagram
 ![Gen0Sec architecture](./fail2ban.svg)
@@ -73,6 +73,8 @@ An Ansible playbook is provided to automate the setup process across multiple se
 - SSH access to target servers with sudo privileges
 
 #### Quick Start
+
+Run these steps from `integrations/fail2ban/`.
 
 1. **Set up inventory file:**
    ```bash
