@@ -55,6 +55,17 @@ for cmd in ("actionban", "actionunban", "actionprolong"):
         rc = subprocess.run(["/bin/sh", "-c", c], capture_output=True).returncode
         check(f"{cmd} on HTTP {code} exits {'0' if want == 0 else 'non-zero'} (rc={rc})", (rc == 0) == (want == 0))
         check(f"{cmd} on HTTP {code} reached the API with the key", len(seen) == 1 and seen[0][1] == "Bearer TESTKEY")
+# The rule name carries the host, so one host's unban cannot lift another host's block.
+import socket
+host = socket.gethostname().split(".")[0]
+refs = {}
+for cmd in ("actionban", "actionunban", "actionprolong"):
+    reply["code"] = 200; seen.clear()
+    subprocess.run(["/bin/sh", "-c", render(cmd)], capture_output=True)
+    refs[cmd] = seen[0][2][0]["rule_ref"] if seen else None
+want = f"fail2ban-{host}-sshd-203.0.113.7"
+for cmd, ref in refs.items():
+    check(f"{cmd} names the rule {want} (got {ref})", ref == want)
 srv.shutdown()
 # control: an unreachable API must also fail
 c = render("actionban").replace(url, "http://127.0.0.1:1/v2/signal")

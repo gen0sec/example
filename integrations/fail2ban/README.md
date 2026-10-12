@@ -62,11 +62,14 @@ The `integrations/fail2ban/` directory contains a Fail2Ban action file that inte
 ### Configuration Options
 
 - `g0stoken`: Your Gen0Sec API Bearer token
+- `g0shost`: This host's part of the rule name (default: the short hostname)
 - `expiration`: Block expiration time in seconds (default: the jail's `bantime`)
 
 A ban, unban or prolong that the API does not accept with HTTP 200 fails, and Fail2Ban logs it as an error. That covers a key without the permission, an entry the API rejects, and an unreachable API.
 
-When an IP is banned, the action creates a Gen0Sec access rule that blocks it, with the reference `fail2ban-<jail>-<ip>`. When Fail2Ban unbans the IP, the action deletes that rule.
+When an IP is banned, the action creates a Gen0Sec access rule that blocks it, named `fail2ban-<host>-<jail>-<ip>`. When Fail2Ban unbans the IP, the action deletes that rule. Each host has its own rule, so one host's unban does not lift a block another host still holds. The host part is the short hostname; set `g0shost` if two hosts share one.
+
+A rule name is at most 128 characters of letters, digits, `.`, `_`, `:` and `-`. A jail or host name with other characters, or a long one combined with an IPv6 address, makes the API reject the ban, and Fail2Ban logs the error.
 
 Expiration is handled by the API as follows:
 
