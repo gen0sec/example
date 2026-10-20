@@ -6,7 +6,7 @@ export SYNAPSE_BIN
 .PHONY: help install lint test test-check test-splunk test-splunk-controls test-fail2ban fmt clean
 
 help: ## List the targets
-	@grep -hE '^[a-zA-Z0-9_-]+:.*## ' $(MAKEFILE_LIST) | awk -F':.*## ' '{printf "  %-12s %s\n", $$1, $$2}'
+	@grep -hE '^[a-zA-Z0-9_-]+:.*## ' $(MAKEFILE_LIST) | awk -F':.*## ' '{printf "  %-14s %s\n", $$1, $$2}'
 
 install: ## Install the lint tooling (yamllint, pinned in requirements-dev.txt)
 	pip install -r requirements-dev.txt
