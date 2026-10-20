@@ -27,8 +27,9 @@ Environment:
   SPLUNK_TEST_NAME       container name (default: g0s-splunk-ta-test)
   SPLUNK_TEST_PORT_BASE  host port base (default: 15000); the ports are
                          base+514, +515, +516 (tcp 5514, 5515, udp 5516),
-                         base+3088 (HEC) and base+3089 (management), so a
-                         second run beside this one needs another base.
+                         base+3088 (HEC) and base+3089 (management). A
+                         second run beside this one needs a base that shares
+                         none of them: step by 1000.
 Exit status: 0 when every check passes, 1 otherwise.
 """
 import importlib

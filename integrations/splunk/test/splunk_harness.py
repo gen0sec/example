@@ -13,7 +13,9 @@ Environment:
                          base+515 (tcp 5515), base+516 (udp 5516),
                          base+3088 (HEC) and base+3089 (management), which at
                          the default are 15514, 15515, 15516, 18088 and 18089.
-                         A different base shifts all of them.
+                         A different base shifts all of them. Two runs on one
+                         host need bases that do not share a port: step by
+                         1000 (e.g. 15000, 16000).
 """
 import json
 import os
@@ -31,6 +33,8 @@ from collections import namedtuple
 IMAGE = os.environ.get("SPLUNK_IMAGE", "splunk/splunk:9.0.1")
 NAME = os.environ.get("SPLUNK_TEST_NAME", "g0s-splunk-ta-test")
 PORT_BASE = int(os.environ.get("SPLUNK_TEST_PORT_BASE", "15000"))
+if not 0 < PORT_BASE <= 65535 - 3089:
+    sys.exit("error: SPLUNK_TEST_PORT_BASE must be between 1 and %d" % (65535 - 3089))
 PASSWORD = "Synapse-test-1"
 HEC_TOKEN = "11111111-2222-3333-4444-555555555555"
 PORTS = {
@@ -134,6 +138,10 @@ def write_monitor_file(data_dir, source, lines):
     os.makedirs(os.path.dirname(path), exist_ok=True)
     with open(path, "w") as f:
         f.write("\n".join(lines) + "\n")
+    # Splunk runs as its own user in the container; a strict umask would
+    # leave the file unreadable to it.
+    os.chmod(os.path.dirname(path), 0o755)
+    os.chmod(path, 0o644)
 
 
 def send_tcp(port, lines):
