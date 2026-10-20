@@ -1,0 +1,24 @@
+name: splunk-controls
+
+on:
+  pull_request:
+    paths: ['integrations/splunk/**']
+  schedule:
+    - cron: '0 5 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  splunk-controls:
+    # Ubicloud runners cannot serve a fork's pull request, so those fall back
+    # to a GitHub-hosted runner.
+    runs-on: ${{ (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) && 'ubicloud-standard-4' || 'ubuntu-latest' }}
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - run: docker --version
+      - run: make test-splunk-controls

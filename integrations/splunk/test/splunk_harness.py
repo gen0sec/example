@@ -95,6 +95,36 @@ def start():
     sh("docker", "start", NAME)
 
 
+def install_ta(ta_dir):
+    """Replace the installed add-on's files with those of `ta_dir`. Files
+    that `ta_dir` lacks are left; copy a whole add-on to replace it."""
+    sh("docker", "cp", f"{ta_dir}/.", f"{NAME}:/opt/splunk/etc/apps/TA-gen0sec-synapse")
+
+
+def startup_time():
+    out = request(PORTS["mgmt"], "/services/server/info?output_mode=json", auth=ADMIN, timeout=5)
+    return json.loads(out)["entry"][0]["content"]["startup_time"]
+
+
+def restart(deadline_s=300):
+    """Restart splunkd through its REST endpoint and wait until a new process
+    answers on the management port, HEC and the TCP input ports. (`splunk
+    restart` through docker exec leaves splunkd dead.)"""
+    before = startup_time()
+    request(PORTS["mgmt"], "/services/server/control/restart", data=b"", auth=ADMIN)
+    end = time.time() + deadline_s
+    while time.time() < end:
+        try:
+            if startup_time() != before and hec_token_accepted():
+                for p in ("tcp3164", "tcp5424"):
+                    socket.create_connection(("127.0.0.1", PORTS[p]), timeout=3).close()
+                return
+        except Exception:
+            pass
+        time.sleep(2)
+    sys.exit("error: Splunk did not come back after a restart; see `docker logs %s`" % NAME)
+
+
 def remove():
     sh("docker", "rm", "-f", NAME, check=False)
 
