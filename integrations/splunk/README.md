@@ -21,7 +21,8 @@ Synapse sends app logs and access logs to syslog under the same identifier
 - It takes `_time` from the record's own `timestamp` (UTC), not from the
   syslog header.
 - It takes `host` from the syslog header when a program tag follows the host
-  (`host prog[pid]:`), or from an RFC 5424 header. A line with no host in its
+  (`host prog[pid]:`), or from an RFC 5424 header, and it may be an IPv4 or
+  IPv6 address. A line with no host in its
   header, such as Synapse's own `<30>Oct 20 14:28:21 synapse[1]: msg`, keeps
   the input's host.
 - It extracts every JSON field (`http.method`, `network.src_ip`,

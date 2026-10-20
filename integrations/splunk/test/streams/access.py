@@ -118,6 +118,22 @@ HOSTLESS = {
     "tcp:5515": [BARE, RFC5424_NIL_HOST],
     "hec-raw": [BARE, ISO_NO_TAG, BSD_NO_HOST],
 }
+
+# Lines whose header host must be kept: (line, marker, host). The hosts differ
+# from HEADER_HOST, so the check shows the header was read.
+KEEP = {
+    "tcp:5514": [
+        ("<30>Oct 20 09:00:05 2001:db8::1 synapse[1]: g0s-keep-ipv6-bsd", "g0s-keep-ipv6-bsd", "2001:db8::1"),
+        ("<30>Oct 20 09:00:05 web-01.example.com postfix/smtpd-x.y[123]: g0s-keep-fqdn",
+         "g0s-keep-fqdn", "web-01.example.com"),
+    ],
+    "tcp:5515": [
+        ("<30>1 2026-10-20T09:00:05.000000+00:00 2001:db8::2 synapse 1 - - g0s-keep-ipv6-5424",
+         "g0s-keep-ipv6-5424", "2001:db8::2"),
+        ('<30>1 2026-10-20T09:00:05.000000+00:00 sd-host.example.com synapse 1 - [a x="1"][b y="2"] g0s-keep-two-sd',
+         "g0s-keep-two-sd", "sd-host.example.com"),
+    ],
+}
 MARKERS = ("g0s-hostless-bare", "g0s-hostless-iso", "g0s-hostless-3164", "g0s-hostless-5424")
 
 
@@ -129,7 +145,7 @@ def lines(header=None, src=None):
     out = [prefix + l for l in RAW_LINES]
     if header:
         out.insert(1, prefix + APP_LINE)
-    return out + HOSTLESS.get(src, [])
+    return out + HOSTLESS.get(src, []) + [l for l, _, _ in KEEP.get(src, [])]
 
 
 # Paths that carry a syslog header: the host must come from it.
@@ -201,6 +217,12 @@ def check(got):
                 fails.append(f"{src}: app log line host {app_host}, want {HEADER_HOST!r}")
         if src in HOSTLESS:
             fails += check_hostless(src, rows)
+        for _, marker, host in KEEP.get(src, []):
+            found = [r for r in rows if marker in r.get("raw", "")]
+            if len(found) != 1:
+                fails.append(f"{src}: {marker}: found {len(found)} events")
+            elif found[0].get("host") != host:
+                fails.append(f"{src}: {marker}: host {found[0].get('host')!r}, want {host!r}")
         for rec in RECORDS:
             rid = rec["request_id"]
             match = [r for r in rows if key_of(r.get("raw", "")) == rid]
