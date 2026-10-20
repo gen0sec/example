@@ -58,6 +58,24 @@ def _derive(rec, shape, text):
 
 
 RELAYED = [_derive(RECORDS[i], shape, text) for i in RELAY_BASES for shape, text in SHAPES.items()]
+# The first record with request headers named like its own fields, as a
+# client can send them. Sorted, the headers come before the record's own
+# `request_id` and `timestamp`. In Synapse's own order they come after them.
+_HDR = json.loads(json.dumps(RECORDS[0]))
+_HDR["http"]["headers"] = {"timestamp": "2000-01-01T00:00:00.000000000Z", "request_id": "req_forged"}
+RELAYED += [
+    _derive(_HDR, "hdr-native", lambda r: json.dumps(r, separators=(",", ":"))),
+    _derive(_HDR, "hdr-sorted-compact", SHAPES["sorted-compact"]),
+    _derive(_HDR, "hdr-sorted-spaced", SHAPES["sorted-spaced"]),
+]
+# The first record with an error, an object that sorts before `event_type`.
+# Its message holds a quote, a backslash and braces.
+_ERR = dict(RECORDS[0], error={"source": "upstream", "error_type": "ConnectRefused",
+                                "message": 'Failed to connect to "10.0.0.1:80" {no route} \\ x'})
+RELAYED += [
+    _derive(_ERR, "err-sorted-compact", SHAPES["sorted-compact"]),
+    _derive(_ERR, "err-sorted-spaced", SHAPES["sorted-spaced"]),
+]
 # One more, behind an RFC 5424 header whose structured data holds a brace. It
 # is sent on tcp:5515 only, with that header.
 SD_RECORD, SD_LINE = _derive(RECORDS[0], "sd", SHAPES["sorted-compact"])
@@ -69,6 +87,11 @@ RECORDS += [rec for rec, _ in RELAYED] + [SD_RECORD]
 # The text of each record as sent, which _raw must equal.
 BODY = {rec["request_id"]: l for rec, l in zip(RECORDS, RAW_LINES)}
 BODY[SD_RECORD["request_id"]] = SD_LINE
+# A record inside another JSON object, as a log pipeline's envelope holds it.
+# It is not an access record itself, so it must stay unrouted and whole.
+ENVELOPE_MARK = "g0s-envelope"
+ENVELOPE = json.dumps({"host": ENVELOPE_MARK, "record": dict(RECORDS[0], request_id="req_enveloped")},
+                      separators=(",", ":"))
 APP_LINE = "WARN synapse_proxy::bgservice - Failed to load upstreams configuration"
 
 # What Splunk must show for each record. Written out by hand rather than
@@ -186,6 +209,7 @@ def lines(header=None, src=None):
     out = [prefix + l for l in RAW_LINES]
     if header:
         out.insert(1, prefix + APP_LINE)
+    out.append(prefix + ENVELOPE)
     if src in SD_SOURCES:
         out.append(SD_HEADER + SD_LINE)
     return out + HOSTLESS.get(src, []) + [l for l, _, _ in KEEP.get(src, [])]
@@ -206,8 +230,14 @@ SOURCES = {
 
 
 def key_of(line):
-    """The request_id in an event's text, or None for a line that has none
-    (the application log line)."""
+    """The record's own request_id, or None for a line that has none (the
+    application log line). A JSON line is read as JSON, because a request
+    header can carry a `request_id` of its own and sorted keys put it first."""
+    try:
+        doc = json.loads(line)
+        return doc.get("request_id") if isinstance(doc, dict) else None
+    except ValueError:
+        pass
     m = re.search(r'"request_id"\s*:\s*"([^"]*)"', line)
     return m.group(1) if m else None
 
@@ -254,6 +284,18 @@ def check(got):
                 got_t = tuple(time.gmtime(float(app[0]["t"]))[1:6])
                 if got_t != HEADER_TIME:
                     fails.append(f"{src}: app log line _time {got_t}, want the header's {HEADER_TIME}")
+        env = [r for r in rows if "req_enveloped" in r.get("raw", "")]
+        want_env = [l for l in sent if l.endswith(ENVELOPE)]
+        if len(env) != 1 or len(want_env) != 1:
+            fails.append(f"{src}: envelope line: found {len(env)} events")
+        else:
+            want_type = "gen0sec:synapse:access" if source.kind == "hec_event" else "gen0sec:synapse"
+            if env[0]["sourcetype"] != want_type:
+                fails.append(f"{src}: envelope line: sourcetype {env[0]['sourcetype']}, want {want_type}")
+            if env[0]["raw"] != want_env[0]:
+                fails.append(f"{src}: envelope line: _raw is not the line as sent: {env[0]['raw'][:80]!r}")
+            if src in HEADERED and tuple(time.gmtime(float(env[0]["t"]))[1:6]) != HEADER_TIME:
+                fails.append(f"{src}: envelope line: _time is not the header's")
         if src in HEADERED:
             app_host = [r.get("host") for r in app]
             if app_host != [HEADER_HOST]:

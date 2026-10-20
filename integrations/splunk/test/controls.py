@@ -18,16 +18,23 @@ Control = namedtuple("Control", "name path pattern replacement must_fail")
 PROPS = "default/props.conf"
 TRANSFORMS = "default/transforms.conf"
 
+# The access pattern as it was before values could be objects, with the guard.
+OLD_ROUTE = (r'^.{0,256}?(?<!":)(?<!": )\{\s*(?:"(?!event_type")[^"]*"\s*:\s*(?:"[^"]*"|null|true|false|-?\d+(?:\.\d+)?)\s*,\s*)*'
+             r'"event_type"\s*:\s*"http_access_log"')
+# The same, as the body of an eval string.
+OLD_EVAL_BODY = (r'(?<!\":)(?<!\": )[{]\s*(?:\"(?!event_type\")[^\"]*\"\s*:\s*(?:\"[^\"]*\"|null|true|false|-?[0-9]+(?:[.][0-9]+)?)\s*,\s*)*'
+                 r'\"event_type\"\s*:\s*\"http_access_log\"')
+
 CONTROLS = [
     Control("header strip removed from TRANSFORMS-g0s", PROPS,
-            r", gen0sec_synapse_strip_header$", "",
+            r", gen0sec_synapse_strip_header, (gen0sec_synapse_time)$", r", \1",
             re.compile(r"^tcp:5514 \S+: _raw is not pure JSON")),
     Control("access sourcetype regex broken", TRANSFORMS,
             r'(\[gen0sec_synapse_access_sourcetype\]\nREGEX = .*http_access_log)"',
             r'\1_x"',
             re.compile(r"^tcp:5514 \S+: sourcetype gen0sec:synapse$")),
     Control("record-time transform removed from TRANSFORMS-g0s", PROPS,
-            r"(gen0sec_synapse_host_bsd), gen0sec_synapse_time,", r"\1,",
+            r", gen0sec_synapse_time$", "",
             re.compile(r"^tcp:5514 \S+: _time ")),
     Control("EVAL-action removed", PROPS,
             r"^EVAL-action = .*\n", "",
@@ -51,8 +58,8 @@ CONTROLS = [
     Control("challenge dropped from the action rule", PROPS,
             r"\(block\|challenge\|ratelimit\)", "(block|ratelimit)",
             re.compile(r"^tcp:5514 req_1792506501500000002: action='allowed', want 'blocked'")),
-    Control("TIME_* removed from [gen0sec:synapse:access]", PROPS,
-            r"^TIME_PREFIX = .*\nTIME_FORMAT = .*\n", "",
+    Control("time transform removed from [gen0sec:synapse:access]", PROPS,
+            r"^TRANSFORMS-g0s-time = .*\n", "",
             re.compile(r"^hec-event \S+: _time ")),
     Control("TIME_PREFIX added to [gen0sec:synapse]", PROPS,
             r"(\[gen0sec:synapse\]\n)", r'\1TIME_PREFIX = "timestamp":"\n',
@@ -82,12 +89,33 @@ CONTROLS = [
             r"\1[^{]*",
             re.compile(r"^tcp:5515 \S+-sd: _raw is not pure JSON")),
     Control("record-time route reverted to the literal prefix", TRANSFORMS,
-            r'^(INGEST_EVAL = _time=if\()match\(_raw, "[^\n]*?"\) AND match\(',
-            r'\1match(_raw, "[{]\\"event_type\\":\\"http_access_log\\"") AND match(',
+            r'^(INGEST_EVAL = _time=if\()match\(_raw, "[^\n]*?"\), (coalesce)',
+            r'\1match(_raw, "[{]\\"event_type\\":\\"http_access_log\\""), \2',
             re.compile(r"^tcp:5514 \S+-sorted-compact: _time ")),
-    Control("TIME_PREFIX of the access sourcetype reverted to the literal", PROPS,
-            r"^TIME_PREFIX = .*$", r'TIME_PREFIX = "timestamp":"',
-            re.compile(r"^hec-event \S+-sorted-spaced: _time ")),
+    Control("record time is the first timestamp in the record", TRANSFORMS,
+            r'json_extract\(_raw, "timestamp"\)',
+            r'replace(_raw, "^.*?\\"timestamp\\"\\s*:\\s*\\"([^\\"]+)\\".*$", "\\1")',
+            re.compile(r"^tcp:5514 \S+-hdr-sorted-compact: _time ")),
+    Control("access route values are scalars only", TRANSFORMS,
+            r"(\[gen0sec_synapse_access_sourcetype\]\nREGEX = ).*\n",
+            lambda m: m.group(1) + OLD_ROUTE + "\n",
+            re.compile(r"^tcp:5514 \S+-err-sorted-compact: sourcetype gen0sec:synapse$")),
+    Control("header strip values are scalars only", TRANSFORMS,
+            r"(\[gen0sec_synapse_strip_header\]\nINGEST_EVAL = ).*\n",
+            lambda m: m.group(1) + '_raw=replace(_raw, "^.{0,256}?(?=' + OLD_EVAL_BODY + ')", "")\n',
+            re.compile(r"^tcp:5514 \S+-err-sorted-compact: _raw is not pure JSON")),
+    Control("access route lets a key named event_type be skipped", TRANSFORMS,
+            r'(\[gen0sec_synapse_access_sourcetype\]\nREGEX = [^\n]*?)\(\?!event_type"\)',
+            r"\1",
+            re.compile(r"^tcp:5514 req_\d+0005-sorted-spaced: sourcetype gen0sec:synapse$")),
+    Control("access route has no guard against an enclosing object", TRANSFORMS,
+            r'(\[gen0sec_synapse_access_sourcetype\]\nREGEX = \^\.\{0,256\}\?)\(\?<!":\)\(\?<!": \)',
+            r"\1",
+            re.compile(r"^tcp:5514: envelope line: sourcetype gen0sec:synapse:access")),
+    Control("header strip has no guard against an enclosing object", TRANSFORMS,
+            r'(INGEST_EVAL = _raw=replace\(_raw, "\^\.\{0,256\}\?\(\?=)\(\?<!\\":\)\(\?<!\\": \)',
+            r"\1",
+            re.compile(r"^tcp:5514: envelope line: _raw is not the line as sent")),
 ]
 
 
