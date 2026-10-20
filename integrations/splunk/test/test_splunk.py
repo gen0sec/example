@@ -107,20 +107,25 @@ EXPECTED = {
 FIELDS = sorted({f for e in EXPECTED.values() for f in e})
 
 
+# The headers' time is hours away from the records' own, so the test can tell
+# which one Splunk used: records take their own time, app lines the header's.
+HEADER_TIME = (10, 20, 9, 0, 5)  # month, day, hour, minute, second (UTC)
+
+
 def header_3164(rec):
-    return "<30>Oct 20 14:28:21 synapse-host synapse[1]: "
+    return "<30>Oct 20 09:00:05 synapse-host synapse[1]: "
 
 
 def header_3164_file(rec):
-    return "Oct 20 14:28:21 synapse-host synapse[1]: "
+    return "Oct 20 09:00:05 synapse-host synapse[1]: "
 
 
 def header_5424(rec):
-    return "<30>1 2026-10-20T14:28:21.384797+00:00 synapse-host synapse 1 - - "
+    return "<30>1 2026-10-20T09:00:05.000000+00:00 synapse-host synapse 1 - - "
 
 
 def header_hec_raw(rec):
-    return "2026-10-20T14:28:21+00:00 synapse-host synapse[1]: "
+    return "2026-10-20T09:00:05+00:00 synapse-host synapse[1]: "
 
 
 def lines(header=None):
@@ -245,6 +250,11 @@ def check(got):
         if any(l.endswith(APP_LINE) for l in sent):
             if len(app) != 1 or app[0]["sourcetype"] != "gen0sec:synapse":
                 fails.append(f"{src}: app log line: {[a['sourcetype'] for a in app]}, want one gen0sec:synapse")
+            else:
+                # An RFC 3164 header has no year, so compare without it.
+                got_t = tuple(time.gmtime(float(app[0]["t"]))[1:6])
+                if got_t != HEADER_TIME:
+                    fails.append(f"{src}: app log line _time {got_t}, want the header's {HEADER_TIME}")
         for rec in RECORDS:
             rid = rec["request_id"]
             match = [r for r in rows if f'"request_id":"{rid}"' in r.get("raw", "")]

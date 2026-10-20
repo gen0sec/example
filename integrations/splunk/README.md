@@ -206,8 +206,7 @@ sourcetype="gen0sec:synapse:access" status>=500
   AxoSyslog's `options {}`. The add-on accepts events up to 8 MiB
   (`TRUNCATE`).
 - **App log lines** keep the sourcetype `gen0sec:synapse`. The add-on does not
-  parse them. They have no `timestamp` field, so Splunk times them by its
-  usual rules.
+  parse them. Their time is the syslog header's.
 
 ## Test
 
