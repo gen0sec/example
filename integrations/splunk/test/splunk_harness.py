@@ -69,9 +69,17 @@ def request(port, path, data=None, auth=None, timeout=30):
         return r.read().decode()
 
 
+created = False
+
+
 def create(data_dir):
     """Create the container (not started) with `data_dir` mounted at /test-data."""
-    sh("docker", "rm", "-f", NAME, check=False)
+    global created
+    running = sh("docker", "ps", "-q", "--filter", f"name=^{NAME}$").stdout.strip()
+    if running:
+        sys.exit(f"error: a container named {NAME} is running; it belongs to another "
+                 "run. Set SPLUNK_TEST_NAME to a different name.")
+    sh("docker", "rm", "-fv", NAME, check=False)
     sh("docker", "create", "--name", NAME,
        "-e", "SPLUNK_START_ARGS=--accept-license", "-e", f"SPLUNK_PASSWORD={PASSWORD}",
        "-e", f"SPLUNK_HEC_TOKEN={HEC_TOKEN}",
@@ -80,6 +88,7 @@ def create(data_dir):
        "-p", f"127.0.0.1:{PORTS['udp']}:5516/udp",
        "-v", f"{data_dir}:/test-data:ro",
        IMAGE)
+    created = True
 
 
 def install(ta_dir, inputs_app_dir):
@@ -135,7 +144,9 @@ def restart(deadline_s=300):
 
 
 def remove():
-    sh("docker", "rm", "-f", NAME, check=False)
+    """Remove the container with its volumes, but only one this run created."""
+    if created:
+        sh("docker", "rm", "-fv", NAME, check=False)
 
 
 def hec_token_accepted():
