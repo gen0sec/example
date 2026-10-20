@@ -199,6 +199,46 @@ log { source(s_local); filter(f_synapse_access); destination(d_splunk_hec); };
 
 Access records have the eventtype `gen0sec_synapse_access`, tagged `web`.
 
+## events.log
+
+Synapse's `events.log` holds one line per block: the layer that acted (`waf`,
+`ids`, `captcha`, `threat_intel`, `smart_firewall`, `access_rules` or
+`rate_limit`), the action, the addresses and the rule. Read the file with a
+monitor input and the sourcetype `gen0sec:synapse:events`. Both the text and
+the JSON format are parsed:
+
+```
+[monitor:///var/log/synapse/events.log]
+sourcetype = gen0sec:synapse:events
+index = main
+```
+
+The add-on takes `_time` from `ts` (UTC, to the second) and extracts
+`layer`, `action` and the other keys, including the nested `eve` object of an
+IDS line (`eve.alert.signature_id`). A text value keeps its escapes as
+written. An IPv6 address stays whole: `src` holds `2001:db8::1:443` and
+there is no `src_ip` or `src_port`. On top of them:
+
+| Field | Note |
+|---|---|
+| `src`, `src_port`, `dest`, `dest_port` | The address and port, split apart |
+| `synapse_action` | The action as Synapse wrote it |
+| `action` | `blocked` for `block`, `ratelimit`, `captcha` or `drop`, otherwise `allowed` |
+| `signature`, `signature_id`, `category`, `severity`, `ids_type` | Intrusion_Detection, for `ids`, `waf`, `captcha` and `threat_intel` |
+| `rule` | Network_Traffic, for `smart_firewall`, `access_rules` and `rate_limit` |
+| `dvc`, `vendor`, `product`, `vendor_product` | The host, `Gen0Sec`, `Synapse`, `Gen0Sec Synapse` |
+
+`ids`, `waf`, `captcha` and `threat_intel` events have the eventtype
+`gen0sec_synapse_events_ids`, tagged `ids` and `attack`. The others have
+`gen0sec_synapse_events_network`, tagged `network` and `communicate`. Every
+event with a layer also has `gen0sec_synapse_events`.
+
+A JSON line has a `source` key (`waf`), and Splunk adds it as a second value of
+the `source` field. A search for `source="/var/log/synapse/events.log"` still
+finds the line, but `| table source` shows both values. In a text line Splunk
+does not extract it. A CEF line (`format = cef`) keeps the sourcetype and is
+not parsed.
+
 ## Sample searches
 
 ```

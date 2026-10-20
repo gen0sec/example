@@ -15,8 +15,9 @@ Each stream is a module in test/streams/ (see streams/access.py) exporting:
   check(rows)   rows maps each source to its Splunk rows; returns problems
 
 The container, the inputs and the sending live in test/splunk_harness.py.
-The inputs.conf has a monitor per stream data directory, and tcp 5514, tcp
-5515 and udp 5516, all with sourcetype gen0sec:synapse.
+The inputs.conf has a monitor per stream data directory, with the sourcetype
+that stream's file sources declare, and tcp 5514, tcp 5515 and udp 5516, with
+sourcetype gen0sec:synapse.
 
 Needs docker. Usage, from integrations/splunk/:  python3 test/test_splunk.py
 Environment:
@@ -66,7 +67,15 @@ def load_streams():
     unknown = [s for s in want if s not in names]
     if unknown:
         sys.exit(f"error: unknown stream(s) {unknown}; have {names}")
-    return {n: importlib.import_module(f"streams.{n}") for n in names if not want or n in want}
+    streams = {n: importlib.import_module(f"streams.{n}") for n in names if not want or n in want}
+    # A source name two streams share would count (and look up) each other's events.
+    owner = {}
+    for name, mod in streams.items():
+        for src in mod.SOURCES:
+            if src in owner:
+                sys.exit(f"error: source {src!r} is declared by both {owner[src]} and {name}")
+            owner[src] = name
+    return streams
 
 
 def actual_source(src, kind, tag):
@@ -112,7 +121,12 @@ def collect(streams, deadline_s=180, since=None, tag=None, until=None):
         rows = h.search(query)
         got = {}
         for r in rows:
-            got.setdefault(where[r["source"]], []).append(r)
+            # An events.log record has a "source" key of its own, which Splunk
+            # adds to the source metadata as a second value.
+            src = r["source"]
+            if isinstance(src, list):
+                src = next(v for v in src if v in where)
+            got.setdefault(where[src], []).append(r)
         if all(len(got.get(s, [])) >= n for s, n in want.items()) or time.time() > end:
             return got
         time.sleep(5)
@@ -122,8 +136,15 @@ def write_inputs(streams, work):
     inputs = os.path.join(work, "g0s_test_inputs", "default")
     os.makedirs(inputs)
     conf = ""
-    for name in streams:
-        conf += (f"[monitor:///test-data/{name}]\nindex = main\nsourcetype = gen0sec:synapse\n"
+    for name, mod in streams.items():
+        # The stanza's sourcetype is the one the stream's file sources declare.
+        types = {s.sourcetype for s in mod.SOURCES.values() if s.kind == "file"}
+        if len(types) > 1:
+            sys.exit(f"error: stream {name}: its files declare several sourcetypes {sorted(types)}; "
+                     "one monitor reads the whole directory")
+        if not types:
+            continue
+        conf += (f"[monitor:///test-data/{name}]\nindex = main\nsourcetype = {types.pop()}\n"
                  "crcSalt = <SOURCE>\n\n")
     for port, extra in (("tcp://5514", "connection_host = none\n"),
                         ("tcp://5515", "connection_host = none\n"),

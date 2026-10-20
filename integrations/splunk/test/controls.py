@@ -33,6 +33,8 @@ SEARCH_TIME_FILES = ("default/eventtypes.conf", "default/tags.conf")
 SEARCH_TIME_SETTING = re.compile(r"(EVAL-|FIELDALIAS-|EXTRACT-|REPORT-|LOOKUP-|KV_MODE\b)")
 PROPS = "default/props.conf"
 TRANSFORMS = "default/transforms.conf"
+EVENTTYPES = "default/eventtypes.conf"
+TAGS = "default/tags.conf"
 
 # The access pattern as it was before values could be objects, with the guard.
 OLD_ROUTE = (r'^.{0,256}?(?<!":)(?<!": )\{\s*(?:"(?!event_type")[^"]*"\s*:\s*(?:"[^"]*"|null|true|false|-?\d+(?:\.\d+)?)\s*,\s*)*'
@@ -53,7 +55,7 @@ CONTROLS = [
             r", gen0sec_synapse_time$", "",
             re.compile(r"^tcp:5514 \S+: _time ")),
     Control("EVAL-action removed", PROPS,
-            r"^EVAL-action = .*\n", "",
+            r"^EVAL-action = case\(isnull\('response.*\n", "",
             re.compile(r"^tcp:5514 \S+: action=None, want "), "search"),
     Control("host transforms removed from TRANSFORMS-g0s", PROPS,
             r"^(TRANSFORMS-g0s = )gen0sec_synapse_host_5424, gen0sec_synapse_host_bsd, ", r"\1",
@@ -140,6 +142,54 @@ CONTROLS = [
             r'(INGEST_EVAL = _raw=replace\(_raw, "\^\.\{0,256\}\?\(\?=)\(\?<!\\":\)\(\?<!\\": \)',
             r"\1",
             re.compile(r"^tcp:5514: envelope line: _raw is not the line as sent")),
+    Control("events: line breaking broken", PROPS,
+            r"(\[gen0sec:synapse:events\]\nSHOULD_LINEMERGE = false\nLINE_BREAKER = \(\[\\r\\n\]\+\))\n", r"\1ZZZ\n",
+            re.compile(r"^/test-data/events/events\.text\.log: 1 events, sent 7$")),
+    Control("events: TIME_PREFIX no longer skips {\"ts\":\"", PROPS,
+            r'^TIME_PREFIX = \^\(\?:\\\{"ts":"\)\?$', "TIME_PREFIX = ^",
+            re.compile(r"^/test-data/events/events\.json\.log line 1: _time ")),
+    Control("events: MAX_TIMESTAMP_LOOKAHEAD too short for ts", PROPS,
+            r"^MAX_TIMESTAMP_LOOKAHEAD = 20$", "MAX_TIMESTAMP_LOOKAHEAD = 5",
+            re.compile(r"^/test-data/events/events\.text\.log line 1: _time ")),
+    Control("events: KV_MODE auto removed", PROPS,
+            r"^KV_MODE = auto\n", "KV_MODE = none\n",
+            re.compile(r"^/test-data/events/events\.json\.log line 6: eve\.alert\.signature_id=None")),
+    Control("events: layer capture renamed", PROPS,
+            r"\(\?<layer>\[\^/", r"(?<layerx>[^/",
+            re.compile(r"^/test-data/events/events\.text\.log line 1: layer=None, want 'waf'")),
+    Control("events: src_port capture renamed", PROPS,
+            r"\(\?<src_port>", "(?<src_portx>",
+            re.compile(r"^/test-data/events/events\.text\.log line 1: src_port=None, want '52256'")),
+    Control("events: IPv6 address split at the last colon", PROPS,
+            r"\\d\{1,3\}\(\?:\\\.\\d\{1,3\}\)\{3\}\):\(\?<src_port>", r"\\S+):(?<src_port>",
+            re.compile(r"^/test-data/events/events\.edited\.text\.log line 2: src_ip='2001:db8::1', want None")),
+    Control("events: msg escape not skipped", PROPS,
+            r"\(\?:\[\^\"\\\\\]\|\\\\\.\)\*", r"[^\"]*",
+            re.compile(r"^/test-data/events/events\.edited\.text\.log line 1: rule_msg=")),
+    Control("events: ids_sids extraction removed", PROPS,
+            r"^EXTRACT-g0s_events_sids = .*\n", "",
+            re.compile(r"^/test-data/events/events\.edited\.text\.log line 9: ids_sids='1', want '1,2'")),
+    Control("events: EVAL-src takes the port along", PROPS,
+            r"EVAL-src = coalesce\(src_ip, src\)", "EVAL-src = src",
+            re.compile(r"^/test-data/events/events\.text\.log line 1: src='198\.51\.100\.20:52256', want '198\.51\.100\.20'")),
+    Control("events: captcha not a blocked action", PROPS,
+            r'\^\(block\|ratelimit\|captcha\|drop\)\$', "^(block|ratelimit|drop)$",
+            re.compile(r"^/test-data/events/events\.edited\.text\.log line 5: action='allowed', want 'blocked'")),
+    Control("events: EVAL-category removed", PROPS,
+            r"^EVAL-category = .*\n", "",
+            re.compile(r"^/test-data/events/events\.text\.log line 1: category=None, want 'waf'")),
+    Control("events: EVAL-rule removed", PROPS,
+            r"^EVAL-rule = .*\n", "",
+            re.compile(r"^/test-data/events/events\.edited\.json\.log line 2: rule=None, want 'waf-ratelimit-login'")),
+    Control("events: ids eventtype loses waf", EVENTTYPES,
+            r"layer=waf OR ", "layer=wafx OR ",
+            re.compile(r"^/test-data/events/events\.text\.log line 1: eventtype=\{'gen0sec_synapse_events'\}, want ")),
+    Control("events: network eventtype loses rate_limit", EVENTTYPES,
+            r"layer=rate_limit\)", "layer=rate_limitx)",
+            re.compile(r"^/test-data/events/events\.edited\.text\.log line 3: eventtype=\{'gen0sec_synapse_events'\}, want ")),
+    Control("events: ids tag removed", TAGS,
+            r"^ids = enabled\n", "",
+            re.compile(r"^/test-data/events/events\.text\.log line 1: tag=\{'attack'\}, want ")),
 ]
 
 
