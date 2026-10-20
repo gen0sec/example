@@ -19,6 +19,7 @@ Environment:
 """
 import json
 import os
+import re
 import socket
 import ssl
 import subprocess
@@ -69,26 +70,28 @@ def request(port, path, data=None, auth=None, timeout=30):
         return r.read().decode()
 
 
-created = False
+container_id = None
 
 
 def create(data_dir):
     """Create the container (not started) with `data_dir` mounted at /test-data."""
-    global created
-    running = sh("docker", "ps", "-q", "--filter", f"name=^{NAME}$").stdout.strip()
-    if running:
-        sys.exit(f"error: a container named {NAME} is running; it belongs to another "
-                 "run. Set SPLUNK_TEST_NAME to a different name.")
-    sh("docker", "rm", "-fv", NAME, check=False)
-    sh("docker", "create", "--name", NAME,
+    global container_id
+    states = sh("docker", "ps", "-a", "--filter", f"name=^{re.escape(NAME)}$",
+                "--format", "{{.State}}").stdout.split()
+    if any(st not in ("exited", "dead") for st in states):
+        sys.exit(f"error: a container named {NAME} is running (another run, or one kept "
+                 f"with KEEP=1). Remove it with `docker rm -fv {NAME}`, or set "
+                 "SPLUNK_TEST_NAME to another name.")
+    if states:
+        sh("docker", "rm", "-fv", NAME, check=False)
+    container_id = sh("docker", "create", "--name", NAME,
        "-e", "SPLUNK_START_ARGS=--accept-license", "-e", f"SPLUNK_PASSWORD={PASSWORD}",
        "-e", f"SPLUNK_HEC_TOKEN={HEC_TOKEN}",
        "-p", f"127.0.0.1:{PORTS['mgmt']}:8089", "-p", f"127.0.0.1:{PORTS['hec']}:8088",
        "-p", f"127.0.0.1:{PORTS['tcp3164']}:5514", "-p", f"127.0.0.1:{PORTS['tcp5424']}:5515",
        "-p", f"127.0.0.1:{PORTS['udp']}:5516/udp",
        "-v", f"{data_dir}:/test-data:ro",
-       IMAGE)
-    created = True
+       IMAGE).stdout.strip()
 
 
 def install(ta_dir, inputs_app_dir):
@@ -144,9 +147,9 @@ def restart(deadline_s=300):
 
 
 def remove():
-    """Remove the container with its volumes, but only one this run created."""
-    if created:
-        sh("docker", "rm", "-fv", NAME, check=False)
+    """Remove the container this run created, with its volumes."""
+    if container_id:
+        sh("docker", "rm", "-fv", container_id, check=False)
 
 
 def hec_token_accepted():
