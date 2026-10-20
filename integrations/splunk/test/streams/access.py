@@ -104,14 +104,32 @@ def header_hec_raw(rec):
     return "2026-10-20T09:00:05+00:00 synapse-host synapse[1]: "
 
 
-def lines(header=None):
+# Lines with no host before a program tag: the host must stay the input's.
+# BARE has no header at all, so its host is the input's default; the others
+# must show that same host. Each ends in a marker that names it.
+BARE = "g0s-hostless-bare"
+ISO_NO_TAG = "2026-10-20T09:00:05Z WARN g0s-hostless-iso"
+BSD_NO_HOST = "<30>Oct 20 09:00:05 synapse[1]: g0s-hostless-3164"
+BSD_NO_HOST_NO_PRI = "Oct 20 09:00:05 synapse[1]: g0s-hostless-3164"
+RFC5424_NIL_HOST = "<30>1 2026-10-20T09:00:05.000000+00:00 - synapse 1 - - g0s-hostless-5424"
+HOSTLESS = {
+    "/test-data/access/syslog-3164.log": [BARE, ISO_NO_TAG, BSD_NO_HOST_NO_PRI],
+    "tcp:5514": [BARE, ISO_NO_TAG, BSD_NO_HOST],
+    "tcp:5515": [BARE, RFC5424_NIL_HOST],
+    "hec-raw": [BARE, ISO_NO_TAG, BSD_NO_HOST],
+}
+MARKERS = ("g0s-hostless-bare", "g0s-hostless-iso", "g0s-hostless-3164", "g0s-hostless-5424")
+
+
+def lines(header=None, src=None):
     """Each record as one line, after `header` when given. A header variant
-    also carries one app log line, as Synapse's syslog stream does."""
+    also carries one app log line, as Synapse's syslog stream does, and the
+    hostless lines of its source."""
     prefix = header(None) if header else ""
     out = [prefix + l for l in RAW_LINES]
     if header:
         out.insert(1, prefix + APP_LINE)
-    return out
+    return out + HOSTLESS.get(src, [])
 
 
 # Paths that carry a syslog header: the host must come from it.
@@ -119,11 +137,11 @@ HEADER_HOST = "synapse-host"
 HEADERED = {"/test-data/access/syslog-3164.log", "tcp:5514", "tcp:5515", "hec-raw"}
 
 SOURCES = {
-    "/test-data/access/syslog-3164.log": Source("file", "gen0sec:synapse", lines(header_3164_file)),
+    "/test-data/access/syslog-3164.log": Source("file", "gen0sec:synapse", lines(header_3164_file, "/test-data/access/syslog-3164.log")),
     "/test-data/access/plain.jsonl": Source("file", "gen0sec:synapse", lines(None)),
-    "tcp:5514": Source("tcp", "gen0sec:synapse", lines(header_3164)),
-    "tcp:5515": Source("tcp", "gen0sec:synapse", lines(header_5424)),
-    "hec-raw": Source("hec_raw", "gen0sec:synapse", lines(header_hec_raw)),
+    "tcp:5514": Source("tcp", "gen0sec:synapse", lines(header_3164, "tcp:5514")),
+    "tcp:5515": Source("tcp", "gen0sec:synapse", lines(header_5424, "tcp:5515")),
+    "hec-raw": Source("hec_raw", "gen0sec:synapse", lines(header_hec_raw, "hec-raw")),
     "hec-event": Source("hec_event", "gen0sec:synapse:access", lines(None)),
 }
 
@@ -139,6 +157,25 @@ def epoch(ts):
     whole, frac = ts.rstrip("Z").split(".")
     t = datetime.strptime(whole, "%Y-%m-%dT%H:%M:%S").replace(tzinfo=timezone.utc).timestamp()
     return round(t + float("0." + frac), 6)
+
+
+def check_hostless(src, rows):
+    fails = []
+    by = {m: [r for r in rows if m in r.get("raw", "")] for m in MARKERS}
+    bare = by["g0s-hostless-bare"]
+    if len(bare) != 1:
+        return [f"{src}: hostless bare line: found {len(bare)} events"]
+    default = bare[0].get("host")
+    for line in HOSTLESS[src]:
+        m = next(m for m in MARKERS if m in line)
+        r = by[m]
+        if len(r) != 1:
+            fails.append(f"{src}: {m}: found {len(r)} events")
+        elif r[0].get("host") != default:
+            fails.append(f"{src}: {m}: host {r[0].get('host')!r}, want the input's {default!r}")
+        elif r[0]["sourcetype"] != "gen0sec:synapse":
+            fails.append(f"{src}: {m}: sourcetype {r[0]['sourcetype']}")
+    return fails
 
 
 def check(got):
@@ -158,6 +195,12 @@ def check(got):
                 got_t = tuple(time.gmtime(float(app[0]["t"]))[1:6])
                 if got_t != HEADER_TIME:
                     fails.append(f"{src}: app log line _time {got_t}, want the header's {HEADER_TIME}")
+        if src in HEADERED:
+            app_host = [r.get("host") for r in app]
+            if app_host != [HEADER_HOST]:
+                fails.append(f"{src}: app log line host {app_host}, want {HEADER_HOST!r}")
+        if src in HOSTLESS:
+            fails += check_hostless(src, rows)
         for rec in RECORDS:
             rid = rec["request_id"]
             match = [r for r in rows if key_of(r.get("raw", "")) == rid]
