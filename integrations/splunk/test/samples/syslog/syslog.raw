@@ -1,0 +1,84 @@
+<30>Oct 20 18:11:22 synapse[1]: synapse_telemetry: forwarding BlockEvents to /var/log/synapse/telemetry.log
+<30>Oct 20 18:11:22 synapse[1]: amygdala sweeper: starting (interval=30000ms)
+<30>Oct 20 18:11:22 synapse[1]: Initializing Ecdysis - upgrade: False
+<30>Oct 20 18:11:22 synapse[1]: auto interface selection: attaching to physical uplink(s) ["eth0"]
+<30>Oct 20 18:11:22 synapse[1]: auto interface selection: excluded 1 virtual/CNI interface(s): lo
+<30>Oct 20 18:11:22 synapse[1]: Firewall mode: none — skipping kernel enforcement
+<28>Oct 20 18:11:22 synapse[1]: dendrite SynAckCollector: failed to load BPF: BPF error: Operation not permitted (os error 1)
+<28>Oct 20 18:11:22 synapse[1]: JA4L: LatencyCollector failed to load BPF: BPF error: Operation not permitted (os error 1) — JA4L disabled
+<28>Oct 20 18:11:22 synapse[1]: JA4S: ServerHelloCollector failed to load BPF: BPF error: Operation not permitted (os error 1)
+<28>Oct 20 18:11:22 synapse[1]: JA4SSH: SshCollector failed to load BPF: BPF error: Operation not permitted (os error 1) — JA4SSH disabled
+<30>Oct 20 18:11:22 synapse[1]: Firewall disabled by config - userland enforcement only
+<30>Oct 20 18:11:22 synapse[1]: Registered internal services address: 127.0.0.1:9180
+<30>Oct 20 18:11:22 synapse[1]: ACME config updated: enabled=false, development=false, port=9180
+<30>Oct 20 18:11:22 synapse[1]: Starting internal services server on: 127.0.0.1:9180
+<30>Oct 20 18:11:22 synapse[1]: GeoIP is not configured: no GeoIP database is loaded (platform.geoip, enabled and with a database path or URL, loads one)
+<30>Oct 20 18:11:22 synapse[1]: Internal services server listening on: 127.0.0.1:9180
+<30>Oct 20 18:11:22 synapse[1]: thalamus_ids worker uses Synapse-owned XDP skeletons; avoid running standalone Thalamus AF_XDP on the same interface concurrently
+<30>Oct 20 18:11:22 synapse[1]: [config] No API key provided, loading config from local file...
+<28>Oct 20 18:11:22 synapse[1]: ids.enabled=true and ids.capture_mode=xdp but no active XDP skeletons are attached; XDP IDS worker not started
+<30>Oct 20 18:11:22 synapse[1]: Opened 2 proxy listener(s) via the graceful-restart socket manager
+<30>Oct 20 18:11:22 synapse[1]: [config] Successfully loaded config from local file (access_rules: 2, waf_rules: 4, smart_firewall_rules: 0, firewall_rules: 0)
+<30>Oct 20 18:11:22 synapse[1]: [config] Running in local config mode - watching /etc/synapse/security_rules.yaml for changes
+<30>Oct 20 18:11:22 synapse[1]: Loaded 2 raw rules
+<30>Oct 20 18:11:22 synapse[1]: eve_log: EVE JSON subscriber started → /var/log/synapse/eve.json
+<30>Oct 20 18:11:22 synapse[1]: eventbridge_log: subscriber started → /var/log/synapse/eventbridge.log
+<30>Oct 20 18:11:22 synapse[1]: Compiled 2 rules
+<30>Oct 20 18:11:22 synapse[1]: Built 3 per-buffer prefilters; 0 of 2 rules always-candidate (no prefilterable content)
+<30>Oct 20 18:11:22 synapse[1]: CompiledRule is 1560 bytes; 2 rules = 0 MB of rule structs
+<30>Oct 20 18:11:22 synapse[1]: raw-stream overlap needed: <=64 2, <=256 0, <=1024 0, <=4096 0, over 0; widest 11 bytes forced on all 2 rules; 1 deferrable to chunk boundaries
+<30>Oct 20 18:11:22 synapse[1]: Port fast-reject: disabled (at least one rule matches any dst port)
+<30>Oct 20 18:11:22 synapse[1]: Thalamus post-TLS IDS enabled (rules=2, enforce_block=false)
+<30>Oct 20 18:11:22 synapse[1]: WAF penalty sync disabled (penalty_sync.enabled=false)
+<30>Oct 20 18:11:22 synapse[1]: Pingora proxy listener http on 0.0.0.0:8080 (Http)
+<30>Oct 20 18:11:22 synapse[1]: Pingora proxy listener https on 0.0.0.0:8443 (Tls)
+<30>Oct 20 18:11:22 synapse[1]: PROXY protocol support disabled - direct connections allowed
+<30>Oct 20 18:11:22 synapse[1]: Bootstrap starting
+<28>Oct 20 18:11:22 synapse[1]: server not ready, will try again in 1s
+<27>Oct 20 18:11:22 synapse[1]: No incoming socket transfer, sleep 1s and try again
+<27>Oct 20 18:11:22 synapse[1]: No incoming socket transfer, sleep 1s and try again
+<30>Oct 20 18:11:22 synapse[1]: Capture mode auto-resolved to AF_PACKET recvfrom (XDP unavailable)
+<30>Oct 20 18:11:22 synapse[1]: never-ban guard: 0 protected entries (IDS HOME_NET + node interface IPs)
+<28>Oct 20 18:11:22 synapse[1]: [fleet-bans] reload requested before any artifact was loaded
+<30>Oct 20 18:11:22 synapse[1]: Control socket listening on /var/run/synapse-control.sock
+<30>Oct 20 18:11:22 synapse[1]: AF_PACKET capture: mode=AfPacketRecv, interface='eth0', all_interfaces=["eth0"]
+<30>Oct 20 18:11:22 synapse[1]: AF_PACKET recvfrom: skipping kernel BPF filter 'tcp' (userspace filtering instead)
+<30>Oct 20 18:11:22 synapse[1]: AF_PACKET recvfrom capture started on 'eth0' (snaplen=65535)
+<30>Oct 20 18:11:22 synapse[1]: AF_PACKET recvfrom capture thread running on 'eth0'
+<30>Oct 20 18:11:22 synapse[1]: thalamus_ids(afpacket): AF_PACKET IDS started on 'eth0' (source=afpacket_tpacket_v3, rules=2, snaplen=512, enforce_block=false)
+<30>Oct 20 18:11:22 synapse[1]: thalamus_ids(afpacket): capture thread running on 'eth0'
+<27>Oct 20 18:11:22 synapse[1]: SSL uprobe: failed to load BPF skeleton: BPF error: Operation not permitted (os error 1)
+<27>Oct 20 18:11:22 synapse[1]: SSL uprobe: failed to load BPF skeleton: BPF error: Operation not permitted (os error 1)
+<30>Oct 20 18:11:22 synapse[1]: {"api_configured":false,"capture_mode":"afpacketrecv","event":"startup_complete","features":{"acme":false,"bpf_filtering":false,"bpf_stats":false,"captcha_client":false,"classifier":false,"content_scanner":false,"internal_services":true,"latency_fingerprint":false,"log_sender":false,"proxy":true,"redis":false,"ssh_fingerprint":false,"tcp_fingerprint":false,"thalamus_ids":true,"thalamus_ids_capture_mode":"afpacketrecv","thalamus_ids_post_tls":true,"thalamus_ids_xdp":false,"threat_intel":false,"waf":true},"firewall_mode":"none","interfaces":["eth0"],"mode":"proxy","runtime":"multi_thread","terminal":false,"worker_threads":null,"xdp_attached":[]}
+<30>Oct 20 18:11:22 synapse[1]: watch_config_broadcast: watching /etc/synapse/security_rules.yaml for changes (reload broadcast)
+<30>Oct 20 18:11:23 synapse[1]: Bootstrap done
+<30>Oct 20 18:11:23 synapse[1]: Inherited listeners transferred to Pingora via upgrade socket
+<30>Oct 20 18:11:23 synapse[1]: TLS grade set to: [ medium ]
+<30>Oct 20 18:11:23 synapse[1]: Watching for certificates in : /etc/synapse/certs
+<30>Oct 20 18:11:23 synapse[1]: Using configured default certificate: app.example.com
+<30>Oct 20 18:11:23 synapse[1]: TLS grade: => MEDIUM
+<30>Oct 20 18:11:23 synapse[1]: downstream connection caps: total=262144 (RLIMIT_NOFILE soft=524288), per client=512
+<30>Oct 20 18:11:23 synapse[1]: SNI dispatcher: http=0.0.0.0:8080 (Http), https=0.0.0.0:8443 (Tls)
+<30>Oct 20 18:11:23 synapse[1]: Server starting
+<30>Oct 20 18:11:23 synapse[1]: Starting services in dependency order: ["BG bgsrvc", "Synapse SNI dispatcher"]
+<30>Oct 20 18:11:23 synapse[1]: Starting service: BG bgsrvc
+<30>Oct 20 18:11:23 synapse[1]: Starting service: Synapse SNI dispatcher
+<30>Oct 20 18:11:23 synapse[1]: Starting Pingora background service for upstreams management
+<30>Oct 20 18:11:23 synapse[1]: Loading upstreams configuration from: /etc/synapse/upstreams.yaml
+<30>Oct 20 18:11:23 synapse[1]: Reading upstreams from /etc/synapse/upstreams.yaml
+<30>Oct 20 18:11:23 synapse[1]: Loaded upstreams (schema v2, kind='filepath', source='/etc/synapse/upstreams.yaml', passthrough_hosts=0)
+<30>Oct 20 18:11:23 synapse[1]: Initialized default internal_path: /health -> internal services server
+<30>Oct 20 18:11:23 synapse[1]: Skipping default internal_path /.well-known/acme-challenge/* (embedded ACME disabled or serve_acme_challenge=false); path will route to the upstream
+<30>Oct 20 18:11:23 synapse[1]: Upstream app.example.com will use certificate: app.example.com
+<30>Oct 20 18:11:23 synapse[1]: Upstream Config:
+<30>Oct 20 18:11:23 synapse[1]: Upstreams configuration loaded successfully
+<30>Oct 20 18:11:23 synapse[1]: Running File discovery, requested type is: file
+<30>Oct 20 18:11:23 synapse[1]: Updated global headers: 0 request headers, 0 response headers
+<30>Oct 20 18:11:23 synapse[1]: Mapped hostname 'app.example.com' to certificate 'app.example.com'
+<30>Oct 20 18:11:23 synapse[1]: Set upstreams certificate mappings: 1 entries
+<30>Oct 20 18:11:23 synapse[1]: Updated upstreams certificate mappings: 1 entries
+<30>Oct 20 18:11:25 synapse[1]: JA4L: client_addr=Some("198.51.100.20:52236"), as_inet=Some("198.51.100.20:52236")
+<30>Oct 20 18:11:25 synapse[1]: {"event_type":"http_access_log","schema_version":"1.0.0","timestamp":"2026-10-20T18:11:25.612937438Z","request_id":"req_1792519885612937578","http":{"method":"GET","scheme":"https","host":"app.example.com","port":8443,"path":"/","query":"","query_hash":null,"headers":{"user-agent":"curl/8.5.0","host":"app.example.com","connection":"close","content-length":"0"},"user_agent":"curl/8.5.0","content_type":null,"content_length":0,"body":"","body_sha256":"e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855","body_truncated":false},"network":{"src_ip":"198.51.100.20","src_port":52236,"dst_ip":"192.0.2.10","dst_port":8443},"tls":{"version":"","cipher":"","alpn":null,"sni":null,"ja4t":null,"server_cert":{"issuer":"CN=app.example.com","subject":"CN=app.example.com","not_before":"2026-10-20T18:11:25.612943998Z","not_after":"2026-10-20T18:11:25.612944078Z","fingerprint_sha256":"35bd06bc8be7f5bd8cbbb8cba099c7e2638c7a9befa26f3ecea03d92cdad0842"}},"response":{"status":200,"status_text":"OK","content_type":"text/plain","content_length":3,"body":""},"error":null,"remediation":null,"geoip":{"country":"","iso_code":"","asn":0,"asn_org":"","asn_country":"","ip_version":4},"upstream":{"selected":"127.0.0.1","method":"round_robin","reason":"healthy"},"performance":{"request_time_ms":10.674,"upstream_time_ms":0.83,"pre_upstream_ms":9.431,"request_filter_total_ms":9.182,"request_filter_keepalive_ms":0.037,"request_filter_access_rules_ms":0.023,"request_filter_tls_fingerprint_ms":0.023,"request_filter_threat_intel_ms":0.012,"request_filter_waf_ms":0.082,"response_filter_waf_ms":0.002,"request_filter_routing_ms":0.014,"upstream_peer_select_ms":0.002,"gap_request_filter_to_upstream_peer_ms":0.003,"gap_upstream_peer_to_upstream_start_ms":0.192,"pre_upstream_unattributed_ms":0.052,"upstream_header_time_ms":0.83,"post_upstream_header_ms":0.413,"response_header_to_log_ms":0.413,"logging_prepare_ms":0.186,"post_tls_ids_time_us":150},"fingerprints":{"ja4h":"ge11nn040000_52aa5c4524f0_000000000000_000000000000","ja4h_hash":"8454b0ad5145","ja4s":"t130200_1302_a56c5b993250","ja4s_hash":"ec0edbc56f1b","ja4x":"7022c563de38_7022c563de38_ecad00239dd7","ja4x_hash":"826219e26cc1"},"trace":{"trace_id":"291e855662437627cdfaaf3ce0e8bf05","span_id":"914bca241be105f4","trace_flags":"01"}}
+<30>Oct 20 18:11:25 synapse[1]: Rate limit exceeded: rule=Rate limit /login, id=waf-ratelimit-login, ip=198.51.100.20, requests=4/3
+<30>Oct 20 18:11:25 synapse[1]: Thalamus proxy IDS matched: sid=1000002, action=alert, msg="GEN0SEC example: HTTP request to /ids-test", uri=/ids-test?x=1, tls_terminated=false
+<28>Oct 20 18:11:25 synapse[1]: thalamus_ids(afpacket): ALERT sid=1000002 "GEN0SEC example: HTTP request to /ids-test" 198.51.100.20:55900 -> 192.0.2.10:8080 action=alert blocked=false

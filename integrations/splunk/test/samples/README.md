@@ -1,6 +1,6 @@
 # Sample records
 
-`records.jsonl` holds eight access records, one per line. The first three were
+`records.jsonl` holds ten access records, one per line. The first three were
 written by Synapse 0.8.8 in a local test (hosts `app.local` and `db.local`, all
 on 127.0.0.1):
 
@@ -17,7 +17,14 @@ particular traffic to produce:
 5. a request the WAF challenged;
 6. a request with a query string;
 7. a record without `http`, which Synapse's schema allows;
-8. a blocked POST with an 8 KiB body, so the record is over 10 KB.
+8. a blocked POST with an 8 KiB body, so the record is over 10 KB;
+9. a request for `/café`, written by `generate.sh` (Synapse 0.8.8). The path
+   is UTF-8. Synapse wrote an empty user agent, because the request's
+   `User-Agent: Ünïcode/1.0` header is not ASCII;
+10. record 9 with one edit: its request id ends in `0`, and its two user agent
+    values are `Ünïcode/1.0`. Synapse does not write a non-ASCII user agent,
+    so a real one cannot be produced. The edit shows Splunk a UTF-8 value in
+    the field.
 
 `streams/access.py` derives nineteen more records from these when it runs, as a
 relay that re-writes the JSON would send them. They are not in
@@ -50,3 +57,74 @@ the input's sourcetype and stay whole.
 
 `test_splunk.py` sends these lines as they are, and with the syslog headers
 that each ingest path adds.
+
+## Generated samples
+
+`generate.sh` runs the Synapse 0.8.8 container (`SYNAPSE_IMAGE`) three times
+and writes the files below. Every line in them is what Synapse wrote, with
+two changes. The container addresses are replaced by `192.0.2.10` (Synapse)
+and `198.51.100.20` (the client). The hostname is `synapse-host`, set on the
+container. Repeated shapes are dropped, so the files stay small. No line was
+written by hand. `gen/collect.py` MUST find each shape the table below lists.
+It exits non-zero and removes the old file when Synapse did not write one, so
+one tree never mixes two runs. It also fails if an IPv4 address outside
+192.0.2.0/24, 198.51.100.0/24, 127.0.0.0/8 or 0.0.0.0, or any IPv6 address,
+is left in a file.
+
+It pulls the image if it is missing, so it MAY need registry access
+(`registry.gen0sec.com/gen0sec/synapse:0.8.8` by default). Synapse runs with
+`--cap-add NET_RAW --ulimit memlock=-1:-1` and nothing else. Packet capture
+works through AF_PACKET. The eBPF TLS probe fails ("Operation not permitted"), which is in
+`app/error.log`.
+
+| Run | events.log | app.log | CEF syslog |
+|-----|------------|---------|------------|
+| a | text | text | UDP, RFC 5424 |
+| b | json | json | TCP, RFC 5424, octet counting |
+| c | CEF | text | UDP, RFC 3164 |
+
+| File | Run | What it is |
+|------|-----|------------|
+| `access/access.log` | a | 8 access records: proxied, query string, `/café`, two WAF blocks with `remediation`, a 429 rate limit, plain HTTP |
+| `app/app.text.log`, `app/app.json.log` | a, b | the first 20 application lines, with an ERROR and a WARN line |
+| `app/error.log` | a | `error.log` |
+| `syslog/syslog.raw` | a | one datagram per message shape, as received (RFC 3164, no host): PRI 30, 28 and 27, and the ERROR pair that Synapse sends twice |
+| `events/events.{text,json,cef}.log` | a, b, c | `events.log` in each format |
+| `eve/eve.json` | a | one IDS stats event (`worker` `thalamus_ids_afpacket`), an alert for the ICMP rule (sid 1000001), an alert for the HTTP rule (sid 1000002) |
+| `eventbridge/eventbridge.log` | a | ja4t, ja4ts, ja4, ja4s, plain and enriched with country and ASN |
+| `telemetry/telemetry.log` | a | 6 records: 4 WAF (three blocks and the login rate limit, with trace and span ids), 2 IDS (`sid:1000001`, `sid:1000002`, without them) |
+| `cef/cef.file.log` | a | `cef.log` |
+| `cef/cef.udp-rfc5424.raw` | a | datagrams received on UDP |
+| `cef/cef.udp-rfc3164.raw` | c | datagrams received on UDP, RFC 3164 header |
+| `cef/cef.tcp-octet-counted.raw` | b | the TCP stream: `<octets> <message>`, no newline |
+
+`cef/cef.tcp-octet-counted.raw` has one edit beyond the address change. The
+octet count of each frame is written again, because the shorter addresses
+change its length.
+
+### Not produced
+
+Synapse 0.8.8 did not write these in this setup. They are NOT in the
+samples, and no line stands in for them.
+
+- EVE `http` events and an EVE alert with an `http` object. They come from
+  decrypted L7 transactions, which need an agent and a proxy in `offload`
+  mode. The HTTP alert here (sid 1000002) has no `http` object.
+- EVE IPv6-ICMP, an alert with the destination blanked, EVE `references`,
+  and a stats event of any `worker` but the IDS one. The IDS stats event has
+  `in_iface`. The capture worker (`afpacket_capture`) writes its stats every
+  30 s, and only when the next frame arrives, so a run this short does not
+  reach it. The EVE timestamps of alerts start in 1970, because Synapse
+  writes them relative to its start.
+- Fingerprint events of the `ja4l`, `ja4ls`, `ja4d` and `ja4ssh` kinds, the
+  packet placeholder, and fractions of other widths. A run in which the
+  fingerprint capture saw `ja4l` and `ja4ls` did not repeat in the final run.
+- JSON events for smart_firewall/drop and captcha. The rate limit appears as
+  a `waf` event with action `ratelimit`.
+- Text events whose value holds `\"` or `\u{2028}`, and a JSON event with
+  only `ts`, `layer` and `action`.
+- `ban=` and `ids_sids=`. They come from smart_firewall bans, which this
+  setup does not produce.
+- The telemetry `doubleValue` attribute type.
+- IPv6 in any stream, `cnt=3`, a CEF
+  line without `rt`, a truncated record, and the relay shapes.

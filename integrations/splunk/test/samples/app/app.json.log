@@ -1,0 +1,21 @@
+{"level":"INFO","message":"synapse_telemetry: forwarding BlockEvents to /var/log/synapse/telemetry.log","target":"synapse_app","time":"2026-10-20T18:11:46.595390368+00:00"}
+{"level":"INFO","message":"amygdala sweeper: starting (interval=30000ms)","target":"synapse_smart_firewall::sweeper","time":"2026-10-20T18:11:46.595844530+00:00"}
+{"level":"INFO","message":"Initializing Ecdysis - upgrade: False","target":"ecdysis::inheriter","time":"2026-10-20T18:11:46.596021481+00:00"}
+{"level":"INFO","message":"auto interface selection: attaching to physical uplink(s) [\"eth0\"]","target":"synapse_app","time":"2026-10-20T18:11:46.598563074+00:00"}
+{"level":"INFO","message":"auto interface selection: excluded 1 virtual/CNI interface(s): lo","target":"synapse_app","time":"2026-10-20T18:11:46.599199338+00:00"}
+{"level":"INFO","message":"Firewall mode: none — skipping kernel enforcement","target":"synapse_app","time":"2026-10-20T18:11:46.599305038+00:00"}
+{"level":"WARN","message":"dendrite SynAckCollector: failed to load BPF: BPF error: Operation not permitted (os error 1)","target":"synapse_app","time":"2026-10-20T18:11:46.599914422+00:00"}
+{"level":"WARN","message":"JA4L: LatencyCollector failed to load BPF: BPF error: Operation not permitted (os error 1) — JA4L disabled","target":"synapse_app","time":"2026-10-20T18:11:46.600930087+00:00"}
+{"level":"WARN","message":"JA4S: ServerHelloCollector failed to load BPF: BPF error: Operation not permitted (os error 1)","target":"synapse_app","time":"2026-10-20T18:11:46.602621466+00:00"}
+{"level":"WARN","message":"JA4SSH: SshCollector failed to load BPF: BPF error: Operation not permitted (os error 1) — JA4SSH disabled","target":"synapse_app","time":"2026-10-20T18:11:46.603086258+00:00"}
+{"level":"INFO","message":"Firewall disabled by config - userland enforcement only","target":"synapse_app","time":"2026-10-20T18:11:46.604879698+00:00"}
+{"level":"INFO","message":"Registered internal services address: 127.0.0.1:9180","target":"synapse_app","time":"2026-10-20T18:11:46.605022418+00:00"}
+{"level":"INFO","message":"ACME config updated: enabled=false, development=false, port=9180","target":"synapse_proxy::acme::certificate","time":"2026-10-20T18:11:46.605260030+00:00"}
+{"level":"INFO","message":"Starting internal services server on: 127.0.0.1:9180","target":"synapse_proxy::services::internal","time":"2026-10-20T18:11:46.605354350+00:00"}
+{"level":"INFO","message":"GeoIP is not configured: no GeoIP database is loaded (platform.geoip, enabled and with a database path or URL, loads one)","target":"synapse_app","time":"2026-10-20T18:11:46.605781122+00:00"}
+{"level":"INFO","message":"Internal services server listening on: 127.0.0.1:9180","target":"synapse_proxy::services::internal","time":"2026-10-20T18:11:46.605823303+00:00"}
+{"level":"INFO","message":"thalamus_ids worker uses Synapse-owned XDP skeletons; avoid running standalone Thalamus AF_XDP on the same interface concurrently","target":"synapse_app","time":"2026-10-20T18:11:46.607077469+00:00"}
+{"level":"INFO","message":"[config] No API key provided, loading config from local file...","target":"synapse_worker::config","time":"2026-10-20T18:11:46.607107579+00:00"}
+{"level":"WARN","message":"ids.enabled=true and ids.capture_mode=xdp but no active XDP skeletons are attached; XDP IDS worker not started","target":"synapse_app","time":"2026-10-20T18:11:46.608139315+00:00"}
+{"level":"INFO","message":"[config] Successfully loaded config from local file (access_rules: 2, waf_rules: 4, smart_firewall_rules: 0, firewall_rules: 0)","target":"synapse_worker::config","time":"2026-10-20T18:11:46.608167915+00:00"}
+{"level":"ERROR","message":"No incoming socket transfer, sleep 1s and try again","target":"pingora_core::server::transfer_fd","time":"2026-10-20T18:11:46.653936826+00:00"}

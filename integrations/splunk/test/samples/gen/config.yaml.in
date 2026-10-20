@@ -1,0 +1,45 @@
+mode: proxy
+firewall:
+  mode: none
+capture:
+  enabled: true
+  interface: eth0
+proxy:
+  listeners:
+    - { name: http, address: "0.0.0.0:8080", mode: http }
+    - { name: https, address: "0.0.0.0:8443", mode: tls }
+  https_redirect_port: 8443
+  upstream:
+    conf: /etc/synapse/upstreams.yaml
+  certificates: /etc/synapse/certs
+  default_certificate: app.example.com
+  acme:
+    enabled: false
+ids:
+  enabled: true
+  capture_mode: afpacketrecv
+  rule_paths: ["/etc/synapse/rules/*.rules"]
+  enforce_block: false
+  managed_rules_path: ""
+  stats_log_interval_secs: 3
+logging:
+  level: info
+  file_logging_enabled: true
+  log_directory: /var/log/synapse
+  events_log_format: @EVENTS_FORMAT@
+  syslog:
+    enabled: true
+  eve_log:
+    enabled: true
+    event_types: [alert, http, stats]
+  eventbridge_log:
+    enabled: true
+  cef:
+    enabled: true
+    streams: { block_events: true, ids_alerts: true, access_logs: true }
+    syslog:
+      enabled: true
+      host: 127.0.0.1
+      port: @CEF_PORT@
+      transport: @CEF_TRANSPORT@
+      rfc: @CEF_RFC@
