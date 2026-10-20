@@ -42,3 +42,10 @@ jobs:
       - run: docker --version
       # The test uses only the standard library, so the runner's python3 does.
       - run: make test-splunk
+
+  fail2ban:
+    runs-on: ubicloud-standard-2
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - run: sudo apt-get update && sudo apt-get install -y --no-install-recommends fail2ban
+      - run: make test-fail2ban

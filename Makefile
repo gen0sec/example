@@ -3,10 +3,10 @@ SYNAPSE_BIN ?= synapse
 export SYNAPSE_BIN
 
 .DEFAULT_GOAL := help
-.PHONY: help install lint test test-check test-splunk test-splunk-controls fmt clean
+.PHONY: help install lint test test-check test-splunk test-splunk-controls test-fail2ban fmt clean
 
 help: ## List the targets
-	@grep -hE '^[a-zA-Z_-]+:.*## ' $(MAKEFILE_LIST) | awk -F':.*## ' '{printf "  %-12s %s\n", $$1, $$2}'
+	@grep -hE '^[a-zA-Z0-9_-]+:.*## ' $(MAKEFILE_LIST) | awk -F':.*## ' '{printf "  %-12s %s\n", $$1, $$2}'
 
 install: ## Install the lint tooling (yamllint, pinned in requirements-dev.txt)
 	pip install -r requirements-dev.txt
@@ -25,6 +25,9 @@ test-splunk: ## Test the Splunk add-on in Splunk 9.0.1 (needs docker; pulls a ~1
 
 test-splunk-controls: ## Break the Splunk add-on one way at a time and check the test notices (needs docker)
 	cd integrations/splunk && python3 test/test_splunk.py --controls
+
+test-fail2ban: ## Test the Fail2Ban action (needs the fail2ban package, e.g. apt install fail2ban)
+	cd integrations/fail2ban && python3 test/test_action.py
 
 fmt: ## No formatter is used; `make lint` reports style problems
 	@echo "No formatter in this repository. Run 'make lint' for style checks."

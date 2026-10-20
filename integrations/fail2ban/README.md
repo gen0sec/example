@@ -86,6 +86,8 @@ Expiration is handled by the API as follows:
 python3 test/test_action.py
 ```
 
+From the repository root, `make test-fail2ban` runs the same test.
+
 ### Ansible
 
 To roll the action out with Ansible, use the `fail2ban` role in
