@@ -182,9 +182,13 @@ def check_kind(control, ta_dir):
 
 
 def make_copy(control, ta_dir, dest):
-    """A fresh broken copy of `ta_dir` at `dest`, world-readable so splunkd can read it."""
+    """A fresh copy of `ta_dir` at `dest` with `control` applied (none: the
+    add-on as it is), world-readable so splunkd can read it. Install this, not
+    `ta_dir`: docker cp keeps the checkout's modes and owner, and a checkout
+    made under umask 077 is unreadable to the splunk user."""
     shutil.copytree(ta_dir, dest)
-    apply(control, dest)
+    if control is not None:
+        apply(control, dest)
     for root, dirs, files in os.walk(dest):
         for d in dirs:
             os.chmod(os.path.join(root, d), 0o755)
