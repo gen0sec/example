@@ -191,9 +191,13 @@ class RunControls(unittest.TestCase):
         self.fake.late_event = True
         rc, out = self.run_with([SEARCH_BREAK])
         self.assertEqual(rc, 0, out)
-        since, tag, until = self.fake.collects[-1]
+        # The baseline's own collect has no window; the control's search and
+        # the restore's re-search must share the one it recorded.
+        since, tag, until = self.fake.collects[1]
         self.assertEqual((since, tag), (98, "c0"))
         self.assertLess(until, 500)
+        self.assertEqual(set(self.fake.collects[1:]), {(since, tag, until)})
+        self.assertEqual(len(self.fake.collects), 3)
 
     def test_search_kind_on_transforms_conf_is_refused(self):
         bad = controls.Control("transforms marked search", controls.TRANSFORMS, r"^REGEX = x\n", "",
