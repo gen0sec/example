@@ -24,7 +24,9 @@ Synapse sends app logs and access logs to syslog under the same identifier
   record as the relay sent it. The header must be under 256 bytes. Keys that
   sort in front of `event_type` may hold strings, numbers, `true`, `false`,
   `null` or one level of object (the `error` of a failed request); an array
-  or a deeper object there stops the match. A record inside another JSON
+  or a deeper object there stops the match, and so does a key that sorts
+  in front of `event_type` and pushes it past the first 16384 bytes (an `error`
+  message of about 16 KB). A record inside another JSON
   object, such as `{"host":"r1","record":{...}}`, is not recognised and stays
   as it came. A line that holds an access record within its first 256
   characters is routed, so an app log line that quotes one is too.

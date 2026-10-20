@@ -62,7 +62,7 @@ RELAYED = [_derive(RECORDS[i], shape, text) for i in RELAY_BASES for shape, text
 # client can send them. Sorted, the headers come before the record's own
 # `request_id` and `timestamp`. In Synapse's own order they come after them.
 _HDR = json.loads(json.dumps(RECORDS[0]))
-_HDR["http"]["headers"] = {"timestamp": "2000-01-01T00:00:00.000000000Z", "request_id": "req_forged"}
+_HDR["http"]["headers"] = {"timestamp": "2026-10-19T14:28:21.384797166Z", "request_id": "req_forged"}
 RELAYED += [
     _derive(_HDR, "hdr-native", lambda r: json.dumps(r, separators=(",", ":"))),
     _derive(_HDR, "hdr-sorted-compact", SHAPES["sorted-compact"]),
@@ -75,6 +75,20 @@ _ERR = dict(RECORDS[0], error={"source": "upstream", "error_type": "ConnectRefus
 RELAYED += [
     _derive(_ERR, "err-sorted-compact", SHAPES["sorted-compact"]),
     _derive(_ERR, "err-sorted-spaced", SHAPES["sorted-spaced"]),
+]
+# The same with a long message, the length of a stack trace: plain, and with
+# a quote, a backslash and braces spread through it. A REGEX transform stops at
+# Splunk's PCRE depth limit; the record must still be routed.
+_LONG = "connect failed: upstream refused the connection after retry. " * 70
+_ERR_LONG = dict(RECORDS[0], error={"source": "upstream", "error_type": "ConnectRefused",
+                                     "message": _LONG})
+_ERR_ESC = dict(RECORDS[0], error={"source": "upstream", "error_type": "ConnectRefused",
+                                    "message": 'say "hi" {x} \\ ' * 400})
+RELAYED += [
+    _derive(_ERR_LONG, "err-long-sorted-compact", SHAPES["sorted-compact"]),
+    _derive(_ERR_LONG, "err-long-sorted-spaced", SHAPES["sorted-spaced"]),
+    _derive(_ERR_ESC, "err-esc-sorted-compact", SHAPES["sorted-compact"]),
+    _derive(_ERR_ESC, "err-esc-sorted-spaced", SHAPES["sorted-spaced"]),
 ]
 # One more, behind an RFC 5424 header whose structured data holds a brace. It
 # is sent on tcp:5515 only, with that header.
