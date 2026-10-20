@@ -3,7 +3,7 @@ SYNAPSE_BIN ?= synapse
 export SYNAPSE_BIN
 
 .DEFAULT_GOAL := help
-.PHONY: help install lint test test-check fmt clean
+.PHONY: help install lint test test-check test-splunk fmt clean
 
 help: ## List the targets
 	@grep -hE '^[a-zA-Z_-]+:.*## ' $(MAKEFILE_LIST) | awk -F':.*## ' '{printf "  %-12s %s\n", $$1, $$2}'
@@ -19,6 +19,9 @@ test: test-check ## Run the controls, then check every config set with `synapse 
 
 test-check: ## Run the controls that prove scripts/check.sh can fail
 	scripts/test-check.sh
+
+test-splunk: ## Test the Splunk add-on in Splunk 9.0.1 (needs docker; pulls a ~1 GB image)
+	cd integrations/splunk && python3 test/test_splunk.py
 
 fmt: ## No formatter is used; `make lint` reports style problems
 	@echo "No formatter in this repository. Run 'make lint' for style checks."

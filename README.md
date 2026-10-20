@@ -8,7 +8,7 @@ is at [docs.gen0sec.com](https://docs.gen0sec.com).
 
 | Path | What it holds |
 |---|---|
-| [`integrations/`](./integrations/) | Ready-to-use integrations of third-party tools with the Gen0Sec API |
+| [`integrations/`](./integrations/) | Ready-to-use integrations of third-party tools with Synapse and the Gen0Sec API |
 | [`use-cases/`](./use-cases/) | Complete, runnable Synapse configurations, one directory each |
 | [`reference/`](./reference/) | Short annotated snippets, one per feature: config sections, upstreams and security rules |
 
@@ -17,6 +17,9 @@ is at [docs.gen0sec.com](https://docs.gen0sec.com).
 - [Fail2Ban](./integrations/fail2ban/): a Fail2Ban action that reports banned
   IP addresses to the Gen0Sec API. The Ansible role that rolls it out lives in
   [gen0sec/ansible-playbook](https://github.com/gen0sec/ansible-playbook).
+- [Splunk](./integrations/splunk/): a Splunk add-on that parses Synapse
+  access logs, whether they arrive by syslog, a file or HEC, and maps them to
+  the CIM Web data model.
 - [Host IDS](./use-cases/host-ids/): agent mode with AF_PACKET capture, local
   Suricata-format rules and EVE alerts written to a file.
 - [Reverse proxy with a WAF](./use-cases/reverse-proxy-waf/): Synapse as a
@@ -42,11 +45,12 @@ next Synapse release (no release has it yet). With a build that has it, run
   no API key. Installing Synapse still needs a repository credential from the
   Gen0Sec dashboard, which is separate from the platform API key.
 - **With a Gen0Sec API key:** Synapse also connects to the Gen0Sec platform,
-  which adds the features that depend on platform data. The integrations in
-  this repository use the Gen0Sec API and need an API key.
+  which adds the features that depend on platform data. The Fail2Ban and
+  Datadog integrations use the Gen0Sec API and need an API key.
 
 The Fail2Ban and Datadog integrations are not Synapse configurations. They
-call the Gen0Sec API directly.
+call the Gen0Sec API directly. The Splunk add-on needs no API key: it reads
+the logs Synapse writes.
 
 ## Install Synapse
 
