@@ -51,7 +51,9 @@ PASSWORD = "Synapse-test-1"
 HEC_TOKEN = "11111111-2222-3333-4444-555555555555"
 PORTS = {"mgmt": 18089, "hec": 18088, "tcp3164": 15514, "tcp5424": 15515}
 
-RECORDS = [json.loads(l) for l in open(os.path.join(HERE, "samples", "records.jsonl"))]
+# Sent exactly as stored, so the bytes Splunk sees are the bytes Synapse wrote.
+RAW_LINES = open(os.path.join(HERE, "samples", "records.jsonl")).read().splitlines()
+RECORDS = [json.loads(l) for l in RAW_LINES]
 APP_LINE = "WARN synapse_proxy::bgservice - Failed to load upstreams configuration"
 
 # What Splunk must show for each record. Written out by hand rather than
@@ -81,6 +83,26 @@ EXPECTED = {
         "uri_path": "/admin", "status": "403", "action": "blocked", "synapse_mode": "proxy",
         "url": "https://app.local:18443/admin",
     },
+    # A challenge stops the request before the upstream, as a block does.
+    "req_1792506501500000002": {
+        "uri_path": "/login", "status": "403", "action": "blocked", "synapse_mode": "proxy",
+    },
+    "req_1792506501500000003": {
+        "uri_path": "/search", "uri_query": "q=synapse&page=2", "status": "200", "action": "allowed",
+        "url": "https://app.local:18443/search?q=synapse&page=2",
+    },
+    "req_1792506501500000004": {
+        "src": "127.0.0.1", "http_method": None, "uri_path": None, "uri_query": None, "url": None,
+        "site": None, "http_user_agent": None, "status": "400", "action": "allowed",
+        "synapse_mode": "proxy",
+    },
+    # Its request body puts everything after `http` past Splunk's default
+    # 5000-byte limit for automatic JSON extraction.
+    "req_1792506501500000005": {
+        "src": "127.0.0.1", "dest_port": "18443", "http_method": "POST", "uri_path": "/admin/upload",
+        "site": "app.local", "status": "403", "action": "blocked", "synapse_mode": "proxy",
+        "bytes_in": "8192", "duration": "11.708", "http_content_type": "text/plain",
+    },
 }
 FIELDS = sorted({f for e in EXPECTED.values() for f in e})
 
@@ -105,11 +127,15 @@ def lines(header=None):
     """Each record as one line, after `header` when given. A header variant
     also carries one app log line, as Synapse's syslog stream does."""
     prefix = header(None) if header else ""
-    out = [prefix + json.dumps(r, separators=(",", ":")) for r in RECORDS]
+    out = [prefix + l for l in RAW_LINES]
     if header:
         out.insert(1, prefix + APP_LINE)
     return out
 
+
+# Paths that carry a syslog header: the host must come from it.
+HEADER_HOST = "synapse-host"
+HEADERED = {"/test-data/syslog-3164.log", "tcp:5514", "tcp:5515", "hec-raw"}
 
 SOURCES = {
     "/test-data/syslog-3164.log": lines(header_3164_file),
@@ -196,7 +222,7 @@ def epoch(ts):
 
 def collect(deadline_s=180):
     want = {src: len(ls) for src, ls in SOURCES.items()}
-    query = ("search index=main source IN (%s) | eval raw=_raw, t=_time | table source sourcetype t raw request_id %s"
+    query = ("search index=main source IN (%s) | eval raw=_raw, t=_time | table source sourcetype host t raw request_id %s"
              % (",".join(f'"{s}"' for s in SOURCES), " ".join(FIELDS)))
     end = time.time() + deadline_s
     while True:
@@ -236,12 +262,12 @@ def check(got):
                 fails.append(f"{where}: _raw is not pure JSON: {r['raw'][:80]!r}")
             if abs(float(r["t"]) - epoch(rec["timestamp"])) > 0.001:
                 fails.append(f"{where}: _time {r['t']}, want {epoch(rec['timestamp'])}")
+            if src in HEADERED and r.get("host") != HEADER_HOST:
+                fails.append(f"{where}: host {r.get('host')!r}, want {HEADER_HOST!r}")
             if r.get("request_id") != rid:
                 fails.append(f"{where}: request_id field {r.get('request_id')!r}")
             for field, want in EXPECTED[rid].items():
                 have = r.get(field)
-                if have == "":
-                    have = None
                 if have != want:
                     fails.append(f"{where}: {field}={have!r}, want {want!r}")
     return fails

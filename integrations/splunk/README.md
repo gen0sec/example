@@ -20,6 +20,7 @@ Synapse sends app logs and access logs to syslog under the same identifier
   format, and its HEC raw format.
 - It takes `_time` from the record's own `timestamp` (UTC), not from the
   syslog header.
+- It keeps the sending host from the syslog header as `host`.
 - It extracts every JSON field (`http.method`, `network.src_ip`,
   `upstream.method`, …) and adds the CIM fields below.
 
@@ -37,6 +38,14 @@ does not parse, so it does not need the add-on.
 cp -r TA-gen0sec-synapse "$SPLUNK_HOME/etc/apps/"
 "$SPLUNK_HOME/bin/splunk" restart
 ```
+
+In a cluster, install it the way Splunk distributes apps there:
+
+- **Indexer cluster.** Copy it to `$SPLUNK_HOME/etc/manager-apps/` on the
+  cluster manager (`master-apps/` before 9.0), then run
+  `splunk apply cluster-bundle`.
+- **Search head cluster.** Copy it to `$SPLUNK_HOME/etc/shcluster/apps/` on the
+  deployer, then run `splunk apply shcluster-bundle -target <a member's URI>`.
 
 ## Enable syslog in Synapse
 
@@ -64,18 +73,21 @@ filter f_synapse { program("synapse"); };
 ### 1. AxoSyslog writes a file, a Universal Forwarder reads it
 
 AxoSyslog. It creates files readable by root only (mode 0600), so give the
-group of the user the forwarder runs as read access. Since 9.1, a Universal
-Forwarder runs as `splunkfwd` by default:
+group of the user the forwarder runs as read access. Replace `FORWARDER-GROUP`
+with that group: a Universal Forwarder runs as `splunkfwd` since 9.1, and as
+`splunk` before that.
 
 ```
 destination d_synapse_file {
-  file("/var/log/synapse/syslog.log" group("splunkfwd") perm(0640));
+  file("/var/log/synapse/syslog.log"
+       create-dirs(yes) dir-group("FORWARDER-GROUP") dir-perm(0750)
+       group("FORWARDER-GROUP") perm(0640));
 };
 log { source(s_local); filter(f_synapse); destination(d_synapse_file); };
 ```
 
-`group()` and `perm()` apply when AxoSyslog creates the file. Change the
-permissions of an existing file by hand.
+`group()`, `perm()` and their `dir-` forms apply when AxoSyslog creates the file
+or directory. Change the permissions of existing ones by hand.
 
 Forwarder `inputs.conf`:
 
@@ -165,7 +177,7 @@ log { source(s_local); filter(f_synapse_access); destination(d_splunk_hec); };
 | `http_user_agent`, `http_content_type` | `http.user_agent`, `http.content_type` | Absent when not sent |
 | `bytes_in`, `bytes_out` | `http.content_length`, `response.content_length` | For passthrough: bytes to the upstream and bytes to the client |
 | `duration` | `performance.request_time_ms` | Milliseconds |
-| `action` | `remediation.waf_action` | `blocked` for `block` or `ratelimit`, otherwise `allowed` |
+| `action` | `remediation.waf_action` | `blocked` for `block`, `challenge` or `ratelimit`, otherwise `allowed` |
 | `synapse_mode` | `upstream.method` | `passthrough` or `proxy` |
 | `vendor`, `product`, `vendor_product` | | `Gen0Sec`, `Synapse`, `Gen0Sec Synapse` |
 
