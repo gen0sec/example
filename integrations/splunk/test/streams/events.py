@@ -54,10 +54,11 @@ WAF_BLOCK = {"layer": "waf", "synapse_action": "block", "action": "blocked", "se
 WAF_RATELIMIT = {**WAF_BLOCK, "synapse_action": "ratelimit", "severity": "medium"}
 IDS_NOTICE = {"layer": "ids", "synapse_action": "notice", "action": "allowed", "severity": "low",
               "ids_type": "network", "category": "ids", "eventtype": ET_IDS, "tag": IDS_TAGS, **VENDOR}
-CAPTCHA = {"layer": "captcha", "synapse_action": "captcha", "action": "blocked", "severity": "medium",
-           "ids_type": "application", "category": "captcha", "eventtype": ET_IDS, "tag": IDS_TAGS, **VENDOR}
-THREAT_INTEL = {"layer": "threat_intel", "synapse_action": "block", "action": "blocked", "severity": "high",
-                "ids_type": None, "category": "threat_intel", "eventtype": ET_IDS, "tag": IDS_TAGS, **VENDOR}
+# Severity follows the action: block and drop high, captcha and ratelimit medium, the rest low.
+WAF_CAPTCHA = {**WAF_BLOCK, "synapse_action": "captcha", "severity": "medium"}
+THREAT_INTEL = {**WAF_BLOCK, "synapse_source": "threat_intel"}
+IDS_BLOCK = {**IDS_NOTICE, "synapse_action": "block", "action": "blocked", "severity": "high"}
+IDS_DROP = {**IDS_BLOCK, "synapse_action": "drop"}
 # Network_Traffic: none of the intrusion fields.
 NO_IDS = {"signature": None, "signature_id": None, "category": None, "severity": None, "ids_type": None}
 RATE_LIMIT = {"layer": "rate_limit", "synapse_action": "ratelimit", "action": "blocked",
@@ -66,6 +67,15 @@ SMART_FIREWALL = {"layer": "smart_firewall", "synapse_action": "drop", "action":
                   "eventtype": ET_NET, "tag": NET_TAGS, **NO_IDS, **VENDOR}
 ACCESS_RULES = {"layer": "access_rules", "synapse_action": "block", "action": "blocked",
                 "eventtype": ET_NET, "tag": NET_TAGS, **NO_IDS, **VENDOR}
+FLEET_BAN = {**ACCESS_RULES, "synapse_action": "drop", "synapse_source": "fleet_ban", "ban_secs": "600",
+             "src": "203.0.113.9", "src_ip": "203.0.113.9", "src_port": None, "dest": None, "dst_ip": None,
+             "rule_id": None, "rule": None}
+SMART_LOG = {**SMART_FIREWALL, "synapse_action": "log", "action": "allowed", "synapse_source": "traffic_classifier",
+             "src_country": "NL", "src_asn": "64500", "src_asn_org": "Example Hosting, B.V.",
+             "sni": "evil.example.com", "traffic_class": "c2", "traffic_confidence": "87"}
+# A client-set string (a quoted msg, an `eve.http` User-Agent) that looks like
+# fields. None of it may reach src, rule or the sids.
+INJECTED = {"src": "198.51.100.20", "src_ip": "198.51.100.20", "rule_id": "waf-block-admin", "ids_sids": None}
 
 ADDRS = {"src": "198.51.100.20", "src_ip": "198.51.100.20", "dest": "192.0.2.10", "dst_ip": "192.0.2.10"}
 TO_8443 = {**ADDRS, "dest_port": "8443", "dst_port": "8443"}
@@ -91,13 +101,12 @@ TS_49 = {"ts": "2026-10-20T18:11:49Z"}
 
 
 def text(port, trace, span):
-    # Splunk does not extract a "source" key from a text line, only from JSON.
-    return {"src_port": port, "trace_id": trace, "span_id": span}
+    return {"src_port": port, "trace_id": trace, "span_id": span, "synapse_source": "waf"}
 
 
 def js(port, trace, span):
     return {"src_port": port, "trace.trace_id": trace, "trace.span_id": span, "trace.trace_flags": "01",
-            "source": "waf"}
+            "trace_id": trace, "span_id": span, "synapse_source": "waf", "source": "waf"}
 
 
 # (_time, expected) per line of each file, in file order.
@@ -134,14 +143,30 @@ EXPECTED = {
                   **text("52310", "468192110bfc623aec714a047d95a1cf", "e7144e172c193ce0")}),
         (T_TEXT, {**TS_TEXT, **SMART_FIREWALL, **TO_8443, **net_rule("waf-block-sqli", "Block basic SQL injection (response=403)"),
                   **text("52262", "529e68adf7f40e52e03f7dba97031d4b", "3b0be6f4ef31e150")}),
-        (T_TEXT, {**TS_TEXT, **CAPTCHA, **TO_8443, **XSS, **text("52270", "db46c50e7ba25e003f05de020da505b1", "837d743aa5c5c4e5")}),
+        (T_TEXT, {**TS_TEXT, **WAF_CAPTCHA, **TO_8443, **XSS, **text("52270", "db46c50e7ba25e003f05de020da505b1", "837d743aa5c5c4e5")}),
         (T_TEXT, {**TS_TEXT, **ACCESS_RULES, **TO_8443, **net_rule("waf-block-sqli", "Block basic SQL injection (response=403)"),
                   **text("52262", "529e68adf7f40e52e03f7dba97031d4b", "3b0be6f4ef31e150")}),
-        (T_TEXT, {**TS_TEXT, **THREAT_INTEL, **TO_8443, **LOGIN, **text("52314", "19eb8d2e63e031bca014d3364f05fb60", "c3050503f6c4750b")}),
+        (T_TEXT, {**TS_TEXT, **THREAT_INTEL, **TO_8443, **LOGIN, **text("52314", "19eb8d2e63e031bca014d3364f05fb60", "c3050503f6c4750b"),
+                  "synapse_source": "threat_intel"}),
         (T_TEXT, {**TS_TEXT, **WAF_BLOCK, **TO_8443, **ADMIN, **text("52256", "057df7833696284bfdffe9ca6284bfd2", "49e8ebf3dc2f4c06"),
-                  "ban": "600s"}),
+                  "ban_secs": "600"}),
         (T_TEXT, {**TS_TEXT, **IDS_NOTICE, **ADDRS, "dest_port": "0", "dst_port": "0", **ICMP_TEST, "src_port": "0",
-                  "ids_sids": "1,2"}),
+                  "ids_sids": {"1", "2"}}),
+        (T_TEXT, {**TS_TEXT, **IDS_BLOCK, **ADDRS, "dest_port": "8080", "dst_port": "8080", **HTTP_TEST, "src_port": "55900",
+                  "ids_sids": {"1000002"}}),
+        (T_TEXT, {**TS_TEXT, **IDS_DROP, **ADDRS, "dest_port": "0", "dst_port": "0", **ICMP_TEST, "src_port": "0"}),
+        # no port on src, no dst: src_ip is still set
+        (T_TEXT, {**TS_TEXT, **FLEET_BAN}),
+        # no rule: rule and rule_id stay empty
+        (T_TEXT, {**TS_TEXT, **ACCESS_RULES, **TO_8443, "rule_id": None, "rule": None, "rule_msg": None,
+                  "src_port": "52262", "synapse_source": "access_rules"}),
+        # a quoted rule id
+        (T_TEXT, {**TS_TEXT, **WAF_BLOCK, **TO_8443, **text("52256", "057df7833696284bfdffe9ca6284bfd2", "49e8ebf3dc2f4c06"),
+                  **rule("Block admin", "Block /admin (response=403)")}),
+        (T_TEXT, {**TS_TEXT, **SMART_LOG, **TO_8443, **net_rule("c2-sni", "C2 SNI seen"), "src_port": "52304"}),
+        (T_TEXT, {**TS_TEXT, **WAF_BLOCK, **TO_8443, **ADMIN, "src_port": "52256", "synapse_source": "waf",
+                  "rule_msg": "Block /admin src=203.0.113.66:1 rule=evil ids_sids=999 (response=403)",
+                  "signature": "Block /admin src=203.0.113.66:1 rule=evil ids_sids=999 (response=403)", **INJECTED}),
     ],
     "events.edited.json.log": [
         # only ts, layer and action
@@ -151,11 +176,23 @@ EXPECTED = {
                      **js("52334", "77e5c248c2ba4eb65a092b52c7de9856", "b895e1f8b93b0b1d")}),
         (T_JSON_48, {**TS_48, **SMART_FIREWALL, **TO_8443, **net_rule("waf-block-sqli", "Block basic SQL injection (response=403)"),
                      **js("52304", "b9aae5063fb0d201d47666c324134b4c", "4bea9405503350e9")}),
-        (T_JSON_48, {**TS_48, **CAPTCHA, **TO_8443, **XSS, **js("52308", "a8f7adb9d42e8cc023ea1dde804e9a00", "8966c80cb59f20f1")}),
+        (T_JSON_48, {**TS_48, **WAF_CAPTCHA, **TO_8443, **XSS, **js("52308", "a8f7adb9d42e8cc023ea1dde804e9a00", "8966c80cb59f20f1")}),
         (T_JSON_49, {**TS_49, **WAF_RATELIMIT, **TO_8443, **LOGIN, **js("52350", "74e980eec1be82849bbe152d391842d7", "cffb4b5c4f6cc4e3"),
                      "ban_secs": "600"}),
         (T_JSON_49, {**TS_49, **IDS_NOTICE, **ADDRS, "dest_port": "0", "dst_port": "0", **ICMP_TEST, "src_port": "0",
-                     "ids_sids{}": {"1", "2"}}),
+                     "ids_sids": {"1", "2"}}),
+        (T_JSON_48, {**TS_48, **THREAT_INTEL, **TO_8443, **XSS, "src_port": "52308"}),
+        # the User-Agent holds ` src=... rule=... ids_sids=...`
+        (T_JSON_49, {**TS_49, **IDS_BLOCK, **ADDRS, "dest_port": "8080", "dst_port": "8080", **HTTP_TEST, "src_port": "33222",
+                     "ids_sids": {"1000002"}, "rule_id": "sid:1000002", "eve.http.http_user_agent":
+                     "curl/8 src=203.0.113.66:1 rule=evil ids_sids=999"}),
+        (T_JSON_49, {**TS_49, **IDS_DROP, **ADDRS, "dest_port": "0", "dst_port": "0", **ICMP_TEST, "src_port": "0",
+                     "ids_sids": {"1"}}),
+        (T_JSON_49, {**TS_49, **FLEET_BAN}),
+        (T_JSON_49, {**TS_49, **ACCESS_RULES, **TO_8443, "rule_id": None, "rule": None, "rule_msg": None,
+                     "src_port": "52262", "synapse_source": "access_rules", "source": "access_rules"}),
+        (T_JSON_48, {**TS_48, **SMART_LOG, **TO_8443, **net_rule("c2-sni", "C2 SNI seen"), "src_port": "52304",
+                     "source": "traffic_classifier"}),
     ],
 }
 # A CEF line stays in this sourcetype, byte for byte. The CIM fields are for

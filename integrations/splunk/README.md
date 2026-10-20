@@ -202,8 +202,7 @@ Access records have the eventtype `gen0sec_synapse_access`, tagged `web`.
 ## events.log
 
 Synapse's `events.log` holds one line per block: the layer that acted (`waf`,
-`ids`, `captcha`, `threat_intel`, `smart_firewall`, `access_rules` or
-`rate_limit`), the action, the addresses and the rule. Read the file with a
+`ids`, `smart_firewall`, `access_rules` or `rate_limit`), the action, the addresses and the rule. Read the file with a
 monitor input and the sourcetype `gen0sec:synapse:events`. Both the text and
 the JSON format are parsed:
 
@@ -221,22 +220,34 @@ there is no `src_ip` or `src_port`. On top of them:
 
 | Field | Note |
 |---|---|
-| `src`, `src_port`, `dest`, `dest_port` | The address and port, split apart |
+| `src`, `src_port`, `dest`, `dest_port` | The address and port, split apart. The port is optional: a fleet ban has `src=203.0.113.9` and no port |
 | `synapse_action` | The action as Synapse wrote it |
 | `action` | `blocked` for `block`, `ratelimit`, `captcha` or `drop`, otherwise `allowed` |
-| `signature`, `signature_id`, `category`, `severity`, `ids_type` | Intrusion_Detection, for `ids`, `waf`, `captcha` and `threat_intel` |
+| `signature`, `signature_id`, `category`, `severity`, `ids_type` | Intrusion_Detection, for `ids` and `waf`. `severity` follows the action: `high` for `block` and `drop`, `medium` for `captcha` and `ratelimit`, `low` for the rest |
 | `rule` | Network_Traffic, for `smart_firewall`, `access_rules` and `rate_limit` |
 | `dvc`, `vendor`, `product`, `vendor_product` | The host, `Gen0Sec`, `Synapse`, `Gen0Sec Synapse` |
 
-`ids`, `waf`, `captcha` and `threat_intel` events have the eventtype
+`ids` and `waf` events have the eventtype
 `gen0sec_synapse_events_ids`, tagged `ids` and `attack`. The others have
 `gen0sec_synapse_events_network`, tagged `network` and `communicate`. Every
 event with a layer also has `gen0sec_synapse_events`.
 
-A JSON line has a `source` key (`waf`), and Splunk adds it as a second value of
-the `source` field. A search for `source="/var/log/synapse/events.log"` still
-finds the line, but `| table source` shows both values. In a text line Splunk
-does not extract it. A CEF line (`format = cef`) keeps the sourcetype and is
+A field has the same name in both formats: `ids_sids` is multivalue, `trace_id`
+and `span_id` are set (a JSON line has them as `trace.trace_id` and
+`trace.span_id` too), and `ban_secs`, `src_country`, `src_asn`,
+`src_asn_org` and `traffic_confidence` are the JSON names of the text keys
+`ban`, `country`, `asn`, `asn_org` and `traffic_conf`. A text rule id that
+Synapse quotes (it holds a space, say) is unquoted in `rule_id`.
+
+Synapse's own `source` key (`waf`, `threat_intel`, `fleet_ban`, ...) is
+`synapse_source` in both formats. It is the way to tell a threat-intel block
+(`waf/block` with `source=threat_intel`) from a rule one. A JSON line's `source`
+key is also added as a second value of the `source` field, after the path: a
+search for `source="/var/log/synapse/events.log"` still finds the line, but
+`| table source` shows both values. In a text line Splunk does not extract
+it. The patterns for a text line are anchored to its head, so a client-set string
+inside a JSON value (a User-Agent holding `src=...`) or a quoted text value
+cannot set `src`, `rule_id` or the sids. A CEF line (`format = cef`) keeps the sourcetype and is
 not parsed.
 
 ## Sample searches

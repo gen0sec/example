@@ -148,11 +148,18 @@ Text (`events.edited.text.log`):
 | 2 | `waf/block`, port 52256 | `src=2001:db8::1:443`: an IPv6 `ip:port` |
 | 3 | `waf/ratelimit`, port 52310 | layer and action `rate_limit/ratelimit` |
 | 4 | `waf/block`, port 52262 | layer and action `smart_firewall/drop` |
-| 5 | `waf/block`, port 52270 | layer and action `captcha/captcha` |
+| 5 | `waf/block`, port 52270 | action `captcha` (`waf/captcha`) |
 | 6 | `waf/block`, port 52262 | layer and action `access_rules/block` |
-| 7 | `waf/ratelimit`, port 52314 | layer and action `threat_intel/block` |
+| 7 | `waf/ratelimit`, port 52314 | action `block`, `source=threat_intel` |
 | 8 | `waf/block`, port 52256 | `ban=600s` added after `source=waf` |
 | 9 | `ids/notice`, port 0 | `ids_sids=1,2` added |
+| 10 | `ids/notice`, port 55900 | action `block`, `ids_sids=1000002` added (IPS) |
+| 11 | `ids/notice`, port 0 | action `drop` (Windows IDS) |
+| 12 | none | `access_rules/drop` of `src=203.0.113.9` with no port, no `dst`, no rule, `source=fleet_ban ban=600s` |
+| 13 | `waf/block`, port 52262 | layer `access_rules`, no `rule` or `msg`, `source=access_rules` |
+| 14 | `waf/block`, port 52256 | `rule="Block admin"`: a quoted rule id |
+| 15 | none | `smart_firewall/log` with `signals`, `country`, `asn`, `asn_org`, `sni`, `traffic_class` and `traffic_conf` |
+| 16 | `waf/block`, port 52256 | `msg` holds ` src=203.0.113.66:1 rule=evil ids_sids=999` |
 
 JSON (`events.edited.json.log`):
 
@@ -161,6 +168,12 @@ JSON (`events.edited.json.log`):
 | 1 | `waf/block`, port 52300 | everything but `ts`, `layer` and `action` removed |
 | 2 | `waf/ratelimit`, port 52334 | layer `rate_limit` |
 | 3 | `waf/block`, port 52304 | layer and action `smart_firewall/drop` |
-| 4 | `waf/block`, port 52308 | layer and action `captcha/captcha` |
+| 4 | `waf/block`, port 52308 | action `captcha` (`waf/captcha`) |
 | 5 | `waf/ratelimit`, port 52350 | `ban_secs` 600 added |
 | 6 | `ids/notice`, port 0 | `ids_sids` `[1,2]` added |
+| 7 | `waf/block`, port 52308 | `source` is `threat_intel` |
+| 8 | `ids/notice`, port 33222 | action `block`, `ids_sids` `[1000002]`, and `eve.http` with a User-Agent holding ` src=203.0.113.66:1 rule=evil ids_sids=999` |
+| 9 | `ids/notice`, port 0 | action `drop`, `ids_sids` `[1]` |
+| 10 | none | `access_rules/drop` of `src_ip` 203.0.113.9 with no port, `source` `fleet_ban`, `ban_secs` 600 |
+| 11 | `waf/block`, port 52334 | layer `access_rules`, no `rule_id` or `rule_msg`, `source` `access_rules` |
+| 12 | none | `smart_firewall/log` with geo, `sni` and traffic fields |
