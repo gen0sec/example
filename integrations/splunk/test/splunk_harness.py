@@ -106,18 +106,27 @@ def startup_time():
     return json.loads(out)["entry"][0]["content"]["startup_time"]
 
 
+def inputs_listening():
+    """True when splunkd listens on the TCP and UDP input ports. Probed from
+    inside the container: Docker's proxy accepts a connection on a published
+    port whether or not anything listens behind it."""
+    for port in (5514, 5515):
+        if sh("docker", "exec", NAME, "bash", "-c", f"exec 3<>/dev/tcp/127.0.0.1/{port}", check=False).returncode:
+            return False
+    udp = sh("docker", "exec", NAME, "netstat", "-lun", check=False)
+    return udp.returncode == 0 and ":5516 " in udp.stdout
+
+
 def restart(deadline_s=300):
     """Restart splunkd through its REST endpoint and wait until a new process
-    answers on the management port, HEC and the TCP input ports. (`splunk
+    answers on the management port and HEC, and listens on the input ports. (`splunk
     restart` through docker exec leaves splunkd dead.)"""
     before = startup_time()
     request(PORTS["mgmt"], "/services/server/control/restart", data=b"", auth=ADMIN)
     end = time.time() + deadline_s
     while time.time() < end:
         try:
-            if startup_time() != before and hec_token_accepted():
-                for p in ("tcp3164", "tcp5424"):
-                    socket.create_connection(("127.0.0.1", PORTS[p]), timeout=3).close()
+            if startup_time() != before and hec_token_accepted() and inputs_listening():
                 return
         except Exception:
             pass
@@ -148,7 +157,8 @@ def wait_ready(deadline_s=600):
         try:
             if health == "healthy" and hec_token_accepted():
                 request(PORTS["mgmt"], "/services/server/info", auth=ADMIN, timeout=5)
-                return
+                if inputs_listening():
+                    return
         except Exception:
             pass
         time.sleep(5)

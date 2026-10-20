@@ -2,7 +2,7 @@ name: splunk-controls
 
 on:
   pull_request:
-    paths: ['integrations/splunk/**']
+    paths: ['integrations/splunk/**', '.github/workflows/splunk-controls.yaml', 'Makefile']
   schedule:
     - cron: '0 5 * * 1'
   workflow_dispatch:

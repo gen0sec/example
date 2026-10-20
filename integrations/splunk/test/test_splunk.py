@@ -159,11 +159,11 @@ def run_controls(streams, data):
                     return 1
                 print(f"baseline ok ({dt:.0f}s)", flush=True)
                 continue
-            hit = [f for f in fails if c.must_fail_substring in f]
+            hit = [f for f in fails if c.must_fail.search(f)]
             if hit:
                 print(f"killed {name} ({len(fails)} problems, {dt:.0f}s)", flush=True)
             else:
-                extra = f"; {len(fails)} problems, none with {c.must_fail_substring!r}" if fails else ""
+                extra = f"; {len(fails)} problems, none matching {c.must_fail.pattern!r}" if fails else ""
                 print(f"survived {name}{extra} ({dt:.0f}s)", flush=True)
                 for f in fails[:5]:
                     print("  " + f)

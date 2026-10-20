@@ -1,6 +1,7 @@
 """Controls for the add-on test: each is a broken copy of the TA, made by one
 regex substitution in one file. A control is killed when the stream checks
-report a problem that contains `must_fail_substring`; if the checks stay quiet
+report a problem that `must_fail` matches. It names the source and the
+field, so a problem another control causes does not count; if the checks stay quiet
 or fail only elsewhere, the control survived and the test has a gap.
 
 `pattern` must match exactly once (MULTILINE), or applying the control is an
@@ -12,7 +13,7 @@ import shutil
 import sys
 from collections import namedtuple
 
-Control = namedtuple("Control", "name path pattern replacement must_fail_substring")
+Control = namedtuple("Control", "name path pattern replacement must_fail")
 
 PROPS = "default/props.conf"
 TRANSFORMS = "default/transforms.conf"
@@ -20,26 +21,33 @@ TRANSFORMS = "default/transforms.conf"
 CONTROLS = [
     Control("header strip removed from TRANSFORMS-g0s", PROPS,
             r", gen0sec_synapse_strip_header$", "",
-            "_raw is not pure JSON"),
+            re.compile(r"^tcp:5514 \S+: _raw is not pure JSON")),
     Control("access sourcetype regex broken", TRANSFORMS,
             r'(\[gen0sec_synapse_access_sourcetype\]\nREGEX = \\\{"event_type":"http_access_log)"',
             r'\1_x"',
-            "sourcetype gen0sec:synapse"),
+            re.compile(r"^tcp:5514 \S+: sourcetype gen0sec:synapse$")),
     Control("record-time transform removed from TRANSFORMS-g0s", PROPS,
             r"(gen0sec_synapse_host), gen0sec_synapse_time,", r"\1,",
-            ": _time "),
+            re.compile(r"^tcp:5514 \S+: _time ")),
     Control("EVAL-action removed", PROPS,
             r"^EVAL-action = .*\n", "",
-            "action=None, want"),
+            re.compile(r"^tcp:5514 \S+: action=None, want ")),
     Control("host transform removed from TRANSFORMS-g0s", PROPS,
             r"^(TRANSFORMS-g0s = )gen0sec_synapse_host, ", r"\1",
-            ": host "),
+            re.compile(r"^tcp:5514 \S+: host '\S*', want 'synapse-host'")),
     Control("challenge dropped from the action rule", PROPS,
             r"\(block\|challenge\|ratelimit\)", "(block|ratelimit)",
-            "action='allowed', want 'blocked'"),
+            re.compile(r"^tcp:5514 req_1792506501500000002: action='allowed', want 'blocked'")),
     Control("TIME_* removed from [gen0sec:synapse:access]", PROPS,
             r"^TIME_PREFIX = .*\nTIME_FORMAT = .*\n", "",
-            "hec-event"),
+            re.compile(r"^hec-event \S+: _time ")),
+    Control("TIME_PREFIX added to [gen0sec:synapse]", PROPS,
+            r"(\[gen0sec:synapse\]\n)", r'\1TIME_PREFIX = "timestamp":"\n',
+            re.compile(r"^tcp:5514: app log line _time ")),
+    Control("access sourcetype regex widened to the app line", TRANSFORMS,
+            r'(\[gen0sec_synapse_access_sourcetype\]\nREGEX = )\\\{"event_type":"http_access_log"',
+            r'\1(?:event_type":"http_access_log"|Failed to load)',
+            re.compile(r"^tcp:5514: app log line: .*want one gen0sec:synapse")),
 ]
 
 
