@@ -30,6 +30,45 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 # Sent exactly as stored, so the bytes Splunk sees are the bytes Synapse wrote.
 RAW_LINES = open(os.path.join(HERE, "..", "samples", "records.jsonl")).read().splitlines()
 RECORDS = [json.loads(l) for l in RAW_LINES]
+
+
+# Records as a relay (a log pipeline that parses and re-writes the JSON) sends
+# them. Derived from the sample records above; each gets the base record's
+# request_id plus a suffix naming its shape, and is the same JSON otherwise.
+#   sorted-spaced   json.dumps(sort_keys=True): event_type is not first
+#   sorted-compact  the same, without the spaces
+#   spaced          spaces around every separator and after the opening brace
+def _spaced(rec):
+    return "{ " + json.dumps(rec, separators=(" , ", " : "))[1:]
+
+
+SHAPES = {
+    "sorted-spaced": lambda rec: json.dumps(rec, sort_keys=True),
+    "sorted-compact": lambda rec: json.dumps(rec, sort_keys=True, separators=(",", ":")),
+    "spaced": _spaced,
+}
+# The first record, the blocked one and the 8 KiB one.
+RELAY_BASES = (0, 3, 7)
+
+
+def _derive(rec, shape, text):
+    d = dict(rec)
+    d["request_id"] = rec["request_id"] + "-" + shape
+    return d, text(d)
+
+
+RELAYED = [_derive(RECORDS[i], shape, text) for i in RELAY_BASES for shape, text in SHAPES.items()]
+# One more, behind an RFC 5424 header whose structured data holds a brace. It
+# is sent on tcp:5515 only, with that header.
+SD_RECORD, SD_LINE = _derive(RECORDS[0], "sd", SHAPES["sorted-compact"])
+SD_HEADER = '<30>1 2026-10-20T09:00:05.000000+00:00 synapse-host synapse 1 - [x@1 k="{v}"] '
+SD_SOURCES = {"tcp:5515"}
+
+RAW_LINES += [line for _, line in RELAYED]
+RECORDS += [rec for rec, _ in RELAYED] + [SD_RECORD]
+# The text of each record as sent, which _raw must equal.
+BODY = {rec["request_id"]: l for rec, l in zip(RECORDS, RAW_LINES)}
+BODY[SD_RECORD["request_id"]] = SD_LINE
 APP_LINE = "WARN synapse_proxy::bgservice - Failed to load upstreams configuration"
 
 # What Splunk must show for each record. Written out by hand rather than
@@ -80,6 +119,8 @@ EXPECTED = {
         "bytes_in": "8192", "duration": "11.708", "http_content_type": "text/plain",
     },
 }
+for _rec, _ in RELAYED + [(SD_RECORD, SD_LINE)]:
+    EXPECTED[_rec["request_id"]] = EXPECTED[_rec["request_id"].split("-", 1)[0]]
 FIELDS = sorted({f for e in EXPECTED.values() for f in e})
 
 
@@ -145,6 +186,8 @@ def lines(header=None, src=None):
     out = [prefix + l for l in RAW_LINES]
     if header:
         out.insert(1, prefix + APP_LINE)
+    if src in SD_SOURCES:
+        out.append(SD_HEADER + SD_LINE)
     return out + HOSTLESS.get(src, []) + [l for l, _, _ in KEEP.get(src, [])]
 
 
@@ -165,7 +208,7 @@ SOURCES = {
 def key_of(line):
     """The request_id in an event's text, or None for a line that has none
     (the application log line)."""
-    m = re.search(r'"request_id":"([^"]*)"', line)
+    m = re.search(r'"request_id"\s*:\s*"([^"]*)"', line)
     return m.group(1) if m else None
 
 
@@ -225,6 +268,8 @@ def check(got):
                 fails.append(f"{src}: {marker}: host {found[0].get('host')!r}, want {host!r}")
         for rec in RECORDS:
             rid = rec["request_id"]
+            if rec is SD_RECORD and src not in SD_SOURCES:
+                continue
             match = [r for r in rows if key_of(r.get("raw", "")) == rid]
             where = f"{src} {rid}"
             if len(match) != 1:
@@ -238,6 +283,8 @@ def check(got):
                     fails.append(f"{where}: _raw JSON differs from the record")
             except ValueError:
                 fails.append(f"{where}: _raw is not pure JSON: {r['raw'][:80]!r}")
+            if r["raw"] != BODY[rid]:
+                fails.append(f"{where}: _raw is not the record as sent: {r['raw'][:80]!r}")
             if abs(float(r["t"]) - epoch(rec["timestamp"])) > 0.001:
                 fails.append(f"{where}: _time {r['t']}, want {epoch(rec['timestamp'])}")
             if src in HEADERED and r.get("host") != HEADER_HOST:
