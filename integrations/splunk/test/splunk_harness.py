@@ -146,6 +146,14 @@ def restart(deadline_s=300):
     sys.exit("error: Splunk did not come back after a restart; see `docker logs %s`" % NAME)
 
 
+def reload_conf():
+    """Make splunkd re-read props.conf, which applies a search-time edit to
+    events already indexed. An index-time edit needs restart() and new
+    events. (transforms.conf is not reloaded: an edit to it is index-time in
+    every control, and controls.check_kind refuses it as a search-time one.)"""
+    request(PORTS["mgmt"], "/services/configs/conf-props/_reload", data=b"", auth=ADMIN)
+
+
 def remove():
     """Remove the container this run created, with its volumes."""
     if container_id:

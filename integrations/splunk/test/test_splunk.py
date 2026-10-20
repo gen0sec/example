@@ -32,10 +32,14 @@ Environment:
                          none of them: step by 1000.
 
   --controls    instead of one run, boot once and run every control in
-                test/controls.py: install the broken add-on over the real one,
-                restart splunkd, resend, and check only events indexed after
-                the restart. Prints killed or survived per control; exit 1 if
-                any survived. `make test-splunk-controls` runs it.
+                test/controls.py. A control of kind "index" is installed over
+                the real add-on, splunkd restarts, the samples are sent again
+                and only events indexed after the restart are checked. A
+                control of kind "search" is installed, the config is
+                reloaded, and the baseline's events are searched again; the
+                add-on is then restored and those events must pass again.
+                Prints killed or survived per control; exit 1 if any
+                survived. `make test-splunk-controls` runs it.
 Exit status: 0 when every check passes (every control killed), 1 otherwise.
 """
 import importlib
@@ -127,29 +131,60 @@ def write_inputs(streams, work):
     return os.path.dirname(inputs)
 
 
+def check_all(streams, got):
+    fails = []
+    for mod in streams.values():
+        fails += mod.check(got)
+    return fails
+
+
 def run_controls(streams, data):
     """Baseline first: the unbroken add-on must pass through the same path,
-    or a failing check would not mean the control was caught."""
+    or a failing check would not mean the control was caught.
+
+    An "index" control restarts splunkd and sends the samples again. A
+    "search" control only reloads the config and searches the baseline's
+    events again, so those run first: an index control leaves its broken
+    add-on installed. After each, the add-on is put back and the baseline
+    events must pass again, which shows the reload took the repair and that
+    the next control starts clean."""
     import controls
     work = tempfile.mkdtemp(prefix="g0s-controls-")
     results = []
     t_all = time.time()
     try:
-        runs = [("baseline", None)] + [(c.name, c) for c in controls.CONTROLS]
+        ordered = sorted(controls.CONTROLS, key=lambda c: c.kind != "search")
+        for c in ordered:
+            controls.check_kind(c, TA_DIR)
+        runs = [("baseline", None)] + [(c.name, c) for c in ordered]
         for i, (name, c) in enumerate(runs):
             t_ctl = time.time()
-            if c is not None:
+            if c is not None and c.kind == "search":
                 broken = os.path.join(work, f"ta{i}")
                 controls.make_copy(c, TA_DIR, broken)
                 h.install_ta(broken)
-            h.restart()
-            t0 = time.time() - 2
-            tag = f"c{i}"
-            send(streams, data, tag)
-            got = collect(streams, since=t0, tag=tag)
-            fails = []
-            for mod in streams.values():
-                fails += mod.check(got)
+                h.reload_conf()
+                fails = check_all(streams, collect(streams, since=base[0], tag=base[1]))
+                h.install_ta(TA_DIR)
+                h.reload_conf()
+                left = check_all(streams, collect(streams, since=base[0], tag=base[1]))
+                if left:
+                    print(f"FAIL: restoring the add-on did not clear {name!r}'s problems from the baseline events:")
+                    for f in left[:5]:
+                        print("  " + f)
+                    return 1
+            else:
+                if c is not None:
+                    broken = os.path.join(work, f"ta{i}")
+                    controls.make_copy(c, TA_DIR, broken)
+                    h.install_ta(broken)
+                h.restart()
+                t0 = time.time() - 2
+                tag = f"c{i}"
+                send(streams, data, tag)
+                if c is None:
+                    base = (t0, tag)
+                fails = check_all(streams, collect(streams, since=t0, tag=tag))
             dt = time.time() - t_ctl
             if c is None:
                 if fails:
@@ -160,11 +195,12 @@ def run_controls(streams, data):
                 print(f"baseline ok ({dt:.0f}s)", flush=True)
                 continue
             hit = [f for f in fails if c.must_fail.search(f)]
+            how = "reload" if c.kind == "search" else "restart"
             if hit:
-                print(f"killed {name} ({len(fails)} problems, {dt:.0f}s)", flush=True)
+                print(f"killed {name} ({len(fails)} problems, {how}, {dt:.0f}s)", flush=True)
             else:
                 extra = f"; {len(fails)} problems, none matching {c.must_fail.pattern!r}" if fails else ""
-                print(f"survived {name}{extra} ({dt:.0f}s)", flush=True)
+                print(f"survived {name}{extra} ({how}, {dt:.0f}s)", flush=True)
                 for f in fails[:5]:
                     print("  " + f)
             results.append((name, bool(hit)))
