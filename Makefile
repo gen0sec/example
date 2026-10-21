@@ -3,7 +3,7 @@ SYNAPSE_BIN ?= synapse
 export SYNAPSE_BIN
 
 .DEFAULT_GOAL := help
-.PHONY: help install lint test test-check test-splunk test-splunk-unit test-splunk-controls test-fail2ban fmt clean
+.PHONY: help install lint test test-check test-splunk test-splunk-unit test-splunk-controls test-fail2ban test-syslog-ng test-syslog-ng-controls fmt clean
 
 help: ## List the targets
 	@grep -hE '^[a-zA-Z0-9_-]+:.*## ' $(MAKEFILE_LIST) | awk -F':.*## ' '{printf "  %-14s %s\n", $$1, $$2}'
@@ -31,6 +31,12 @@ test-splunk-controls: ## Break the Splunk add-on one way at a time and check the
 
 test-fail2ban: ## Test the Fail2Ban action (needs the fail2ban package, e.g. apt install fail2ban)
 	cd integrations/fail2ban && python3 test/test_action.py
+
+test-syslog-ng: ## Test the syslog-ng forwarding config in AxoSyslog 4.29.0 (needs docker)
+	cd integrations/syslog-ng && python3 test/test_forward.py
+
+test-syslog-ng-controls: ## Break the syslog-ng config one way at a time and check the test notices (needs docker)
+	cd integrations/syslog-ng && python3 test/test_forward.py --controls
 
 fmt: ## No formatter is used; `make lint` reports style problems
 	@echo "No formatter in this repository. Run 'make lint' for style checks."
