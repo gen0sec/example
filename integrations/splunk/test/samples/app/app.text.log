@@ -1,0 +1,21 @@
+2026-10-20 18:11:22 INFO synapse_app - synapse_telemetry: forwarding BlockEvents to /var/log/synapse/telemetry.log
+2026-10-20 18:11:22 INFO synapse_smart_firewall::sweeper - amygdala sweeper: starting (interval=30000ms)
+2026-10-20 18:11:22 INFO ecdysis::inheriter - Initializing Ecdysis - upgrade: False
+2026-10-20 18:11:22 INFO synapse_app - auto interface selection: attaching to physical uplink(s) ["eth0"]
+2026-10-20 18:11:22 INFO synapse_app - auto interface selection: excluded 1 virtual/CNI interface(s): lo
+2026-10-20 18:11:22 INFO synapse_app - Firewall mode: none — skipping kernel enforcement
+2026-10-20 18:11:22 WARN synapse_app - dendrite SynAckCollector: failed to load BPF: BPF error: Operation not permitted (os error 1)
+2026-10-20 18:11:22 WARN synapse_app - JA4L: LatencyCollector failed to load BPF: BPF error: Operation not permitted (os error 1) — JA4L disabled
+2026-10-20 18:11:22 WARN synapse_app - JA4S: ServerHelloCollector failed to load BPF: BPF error: Operation not permitted (os error 1)
+2026-10-20 18:11:22 WARN synapse_app - JA4SSH: SshCollector failed to load BPF: BPF error: Operation not permitted (os error 1) — JA4SSH disabled
+2026-10-20 18:11:22 INFO synapse_app - Firewall disabled by config - userland enforcement only
+2026-10-20 18:11:22 INFO synapse_app - Registered internal services address: 127.0.0.1:9180
+2026-10-20 18:11:22 INFO synapse_proxy::acme::certificate - ACME config updated: enabled=false, development=false, port=9180
+2026-10-20 18:11:22 INFO synapse_proxy::services::internal - Starting internal services server on: 127.0.0.1:9180
+2026-10-20 18:11:22 INFO synapse_app - GeoIP is not configured: no GeoIP database is loaded (platform.geoip, enabled and with a database path or URL, loads one)
+2026-10-20 18:11:22 INFO synapse_proxy::services::internal - Internal services server listening on: 127.0.0.1:9180
+2026-10-20 18:11:22 INFO synapse_app - thalamus_ids worker uses Synapse-owned XDP skeletons; avoid running standalone Thalamus AF_XDP on the same interface concurrently
+2026-10-20 18:11:22 INFO synapse_worker::config - [config] No API key provided, loading config from local file...
+2026-10-20 18:11:22 WARN synapse_app - ids.enabled=true and ids.capture_mode=xdp but no active XDP skeletons are attached; XDP IDS worker not started
+2026-10-20 18:11:22 INFO synapse_app - Opened 2 proxy listener(s) via the graceful-restart socket manager
+2026-10-20 18:11:22 ERROR pingora_core::server::transfer_fd - No incoming socket transfer, sleep 1s and try again

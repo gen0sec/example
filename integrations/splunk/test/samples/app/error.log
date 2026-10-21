@@ -1,0 +1,2 @@
+2026-10-20 18:11:22 ERROR pingora_core::server::transfer_fd - No incoming socket transfer, sleep 1s and try again
+2026-10-20 18:11:22 ERROR synapse_capture::ssl_uprobe - SSL uprobe: failed to load BPF skeleton: BPF error: Operation not permitted (os error 1)

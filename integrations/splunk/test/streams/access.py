@@ -155,6 +155,17 @@ EXPECTED = {
         "site": "app.local", "status": "403", "action": "blocked", "synapse_mode": "proxy",
         "bytes_in": "8192", "duration": "11.708", "http_content_type": "text/plain",
     },
+    # UTF-8 as Synapse 0.8.8 wrote it. It writes the path as sent, and an
+    # empty user agent for a header that is not ASCII.
+    "req_1792518275950695792": {
+        "uri_path": "/café", "http_user_agent": None, "status": "200", "action": "allowed",
+        "url": "https://app.example.com:8443/café",
+    },
+    # The same record with the user agent edited to hold UTF-8.
+    "req_1792518275950695790": {
+        "uri_path": "/café", "http_user_agent": "Ünïcode/1.0", "status": "200", "action": "allowed",
+        "url": "https://app.example.com:8443/café",
+    },
 }
 for _rec, _ in RELAYED + [(SD_RECORD, SD_LINE)]:
     EXPECTED[_rec["request_id"]] = EXPECTED[_rec["request_id"].split("-", 1)[0]]
