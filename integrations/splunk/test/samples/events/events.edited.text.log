@@ -1,0 +1,16 @@
+2026-10-20T18:11:25Z [waf/block] src=198.51.100.20:52256 dst=192.0.2.10:8443 rule=waf-block-admin msg="Block \"a=b\" admin\u{2028}x (response=403)" source=waf trace_id=057df7833696284bfdffe9ca6284bfd2 span_id=49e8ebf3dc2f4c06
+2026-10-20T18:11:25Z [waf/block] src=2001:db8::1:443 dst=192.0.2.10:8443 rule=waf-block-admin msg="Block /admin (response=403)" source=waf trace_id=057df7833696284bfdffe9ca6284bfd2 span_id=49e8ebf3dc2f4c06
+2026-10-20T18:11:25Z [rate_limit/ratelimit] src=198.51.100.20:52310 dst=192.0.2.10:8443 rule=waf-ratelimit-login msg="Rate limit /login (response=429)" source=waf trace_id=468192110bfc623aec714a047d95a1cf span_id=e7144e172c193ce0
+2026-10-20T18:11:25Z [smart_firewall/drop] src=198.51.100.20:52262 dst=192.0.2.10:8443 rule=waf-block-sqli msg="Block basic SQL injection (response=403)" source=waf trace_id=529e68adf7f40e52e03f7dba97031d4b span_id=3b0be6f4ef31e150
+2026-10-20T18:11:25Z [waf/captcha] src=198.51.100.20:52270 dst=192.0.2.10:8443 rule=waf-block-xss msg="Block basic XSS (response=403)" source=waf trace_id=db46c50e7ba25e003f05de020da505b1 span_id=837d743aa5c5c4e5
+2026-10-20T18:11:25Z [access_rules/block] src=198.51.100.20:52262 dst=192.0.2.10:8443 rule=waf-block-sqli msg="Block basic SQL injection (response=403)" source=waf trace_id=529e68adf7f40e52e03f7dba97031d4b span_id=3b0be6f4ef31e150
+2026-10-20T18:11:25Z [waf/block] src=198.51.100.20:52314 dst=192.0.2.10:8443 rule=waf-ratelimit-login msg="Rate limit /login (response=429)" source=threat_intel trace_id=19eb8d2e63e031bca014d3364f05fb60 span_id=c3050503f6c4750b
+2026-10-20T18:11:25Z [waf/block] src=198.51.100.20:52256 dst=192.0.2.10:8443 rule=waf-block-admin msg="Block /admin (response=403)" source=waf ban=600s trace_id=057df7833696284bfdffe9ca6284bfd2 span_id=49e8ebf3dc2f4c06
+2026-10-20T18:11:25Z [ids/notice] src=198.51.100.20:0 dst=192.0.2.10:0 rule=sid:1000001 msg="GEN0SEC example: ICMP echo with test payload" ids_sids=1,2
+2026-10-20T18:11:25Z [ids/block] src=198.51.100.20:55900 dst=192.0.2.10:8080 rule=sid:1000002 msg="GEN0SEC example: HTTP request to /ids-test" ids_sids=1000002
+2026-10-20T18:11:25Z [ids/drop] src=198.51.100.20:0 dst=192.0.2.10:0 rule=sid:1000001 msg="GEN0SEC example: ICMP echo with test payload"
+2026-10-20T18:11:25Z [access_rules/drop] src=203.0.113.9 source=fleet_ban ban=600s
+2026-10-20T18:11:25Z [access_rules/block] src=198.51.100.20:52262 dst=192.0.2.10:8443 source=access_rules
+2026-10-20T18:11:25Z [waf/block] src=198.51.100.20:52256 dst=192.0.2.10:8443 rule="Block admin" msg="Block /admin (response=403)" source=waf trace_id=057df7833696284bfdffe9ca6284bfd2 span_id=49e8ebf3dc2f4c06
+2026-10-20T18:11:25Z [smart_firewall/log] src=198.51.100.20:52304 dst=192.0.2.10:8443 rule=c2-sni msg="C2 SNI seen" source=traffic_classifier signals=traffic_classifier,geoip country=NL asn=64500 asn_org="Example Hosting, B.V." sni="evil.example.com" traffic_class=c2 traffic_conf=87
+2026-10-20T18:11:25Z [waf/block] src=198.51.100.20:52256 dst=192.0.2.10:8443 rule=waf-block-admin msg="Block /admin src=203.0.113.66:1 rule=evil ids_sids=999 (response=403)" source=waf

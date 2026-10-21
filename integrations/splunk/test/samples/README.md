@@ -120,11 +120,60 @@ samples, and no line stands in for them.
   packet placeholder, and fractions of other widths. A run in which the
   fingerprint capture saw `ja4l` and `ja4ls` did not repeat in the final run.
 - JSON events for smart_firewall/drop and captcha. The rate limit appears as
-  a `waf` event with action `ratelimit`.
+  a `waf` event with action `ratelimit`. Edited stand-ins are in
+  `events/events.edited.*.log`, below.
 - Text events whose value holds `\"` or `\u{2028}`, and a JSON event with
-  only `ts`, `layer` and `action`.
+  only `ts`, `layer` and `action`. Edited stand-ins are below.
 - `ban=` and `ids_sids=`. They come from smart_firewall bans, which this
-  setup does not produce.
+  setup does not produce. Edited stand-ins are below.
 - The telemetry `doubleValue` attribute type.
-- IPv6 in any stream, `cnt=3`, a CEF
+- IPv6 in any stream but the one edited line below, `cnt=3`, a CEF
   line without `rt`, a truncated record, and the relay shapes.
+
+## Edited events.log lines
+
+`events/events.edited.text.log` and `events/events.edited.json.log` are NOT
+generated. They are hand-edited lines of `events.text.log` and
+`events.json.log`, kept apart so that the generated files stay as Synapse
+wrote them. Each line below differs from the line it came from in the one
+thing named. The edited text lines start from the line with the same
+address and port in `events.text.log`, the JSON ones from `events.json.log`.
+The test checks them as it checks the real ones.
+
+Text (`events.edited.text.log`):
+
+| Line | From | Edit |
+|---|---|---|
+| 1 | `waf/block`, port 52256 | `msg` is `Block \"a=b\" admin\u{2028}x (response=403)`: an escaped quote, an `=` and `\u{2028}`, kept as written |
+| 2 | `waf/block`, port 52256 | `src=2001:db8::1:443`: an IPv6 `ip:port` |
+| 3 | `waf/ratelimit`, port 52310 | layer and action `rate_limit/ratelimit` |
+| 4 | `waf/block`, port 52262 | layer and action `smart_firewall/drop` |
+| 5 | `waf/block`, port 52270 | action `captcha` (`waf/captcha`) |
+| 6 | `waf/block`, port 52262 | layer and action `access_rules/block` |
+| 7 | `waf/ratelimit`, port 52314 | action `block`, `source=threat_intel` |
+| 8 | `waf/block`, port 52256 | `ban=600s` added after `source=waf` |
+| 9 | `ids/notice`, port 0 | `ids_sids=1,2` added |
+| 10 | `ids/notice`, port 55900 | action `block`, `ids_sids=1000002` added (IPS) |
+| 11 | `ids/notice`, port 0 | action `drop` (Windows IDS) |
+| 12 | none | `access_rules/drop` of `src=203.0.113.9` with no port, no `dst`, no rule, `source=fleet_ban ban=600s` |
+| 13 | `waf/block`, port 52262 | layer `access_rules`, no `rule` or `msg`, `source=access_rules` |
+| 14 | `waf/block`, port 52256 | `rule="Block admin"`: a quoted rule id |
+| 15 | none | `smart_firewall/log` with `signals`, `country`, `asn`, `asn_org`, `sni`, `traffic_class` and `traffic_conf` |
+| 16 | `waf/block`, port 52256 | `msg` holds ` src=203.0.113.66:1 rule=evil ids_sids=999` |
+
+JSON (`events.edited.json.log`):
+
+| Line | From | Edit |
+|---|---|---|
+| 1 | `waf/block`, port 52300 | everything but `ts`, `layer` and `action` removed |
+| 2 | `waf/ratelimit`, port 52334 | layer `rate_limit` |
+| 3 | `waf/block`, port 52304 | layer and action `smart_firewall/drop` |
+| 4 | `waf/block`, port 52308 | action `captcha` (`waf/captcha`) |
+| 5 | `waf/ratelimit`, port 52350 | `ban_secs` 600 added |
+| 6 | `ids/notice`, port 0 | `ids_sids` `[1,2]` added |
+| 7 | `waf/block`, port 52308 | `source` is `threat_intel` |
+| 8 | `ids/notice`, port 33222 | action `block`, `ids_sids` `[1000002]`, and `eve.http` with a User-Agent holding ` src=203.0.113.66:1 rule=evil ids_sids=999` |
+| 9 | `ids/notice`, port 0 | action `drop`, `ids_sids` `[1]` |
+| 10 | none | `access_rules/drop` of `src_ip` 203.0.113.9 with no port, `source` `fleet_ban`, `ban_secs` 600 |
+| 11 | `waf/block`, port 52334 | layer `access_rules`, no `rule_id` or `rule_msg`, `source` `access_rules` |
+| 12 | none | `smart_firewall/log` with geo, `sni` and traffic fields |
