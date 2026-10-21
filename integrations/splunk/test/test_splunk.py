@@ -30,7 +30,13 @@ Environment:
                          base+3088 (HEC) and base+3089 (management). A
                          second run beside this one needs a base that shares
                          none of them: step by 1000.
-Exit status: 0 when every check passes, 1 otherwise.
+
+  --controls    instead of one run, boot once and run every control in
+                test/controls.py: install the broken add-on over the real one,
+                restart splunkd, resend, and check only events indexed after
+                the restart. Prints killed or survived per control; exit 1 if
+                any survived. `make test-splunk-controls` runs it.
+Exit status: 0 when every check passes (every control killed), 1 otherwise.
 """
 import importlib
 import os
@@ -58,11 +64,20 @@ def load_streams():
     return {n: importlib.import_module(f"streams.{n}") for n in names if not want or n in want}
 
 
-def send(streams, data_dir):
+def actual_source(src, kind, tag):
+    """The Splunk source of `src`. A tag puts a file in its own subdirectory,
+    so a monitor reads it even though its content was seen before."""
+    if tag and kind == "file":
+        d, f = os.path.split(src)
+        return os.path.join(d, tag, f)
+    return src
+
+
+def send(streams, data_dir, tag=None):
     for mod in streams.values():
         for src, s in mod.SOURCES.items():
             if s.kind == "file":
-                h.write_monitor_file(data_dir, src, s.lines)
+                h.write_monitor_file(data_dir, actual_source(src, s.kind, tag), s.lines)
             elif s.kind == "tcp":
                 h.send_tcp(h.PORTS[NETWORK[src]], s.lines)
             elif s.kind == "udp":
@@ -75,17 +90,22 @@ def send(streams, data_dir):
                 sys.exit(f"error: {src}: unknown kind {s.kind!r}")
 
 
-def collect(streams, deadline_s=180):
+def collect(streams, deadline_s=180, since=None, tag=None):
+    """Rows per source. With `since`, only events indexed at or after that
+    epoch second; `tag` is the one given to send()."""
     want = {src: len(s.lines) for mod in streams.values() for src, s in mod.SOURCES.items()}
+    where = {actual_source(src, s.kind, tag): src
+             for mod in streams.values() for src, s in mod.SOURCES.items()}
     fields = sorted({f for mod in streams.values() for f in mod.FIELDS})
-    query = ("search index=main source IN (%s) | eval raw=_raw, t=_time | table source sourcetype host t raw request_id %s"
-             % (",".join(f'"{s}"' for s in want), " ".join(fields)))
+    base = "search index=main" + (f" _indextime>={int(since)}" if since else "")
+    query = ("%s source IN (%s) | eval raw=_raw, t=_time | table source sourcetype host t raw request_id %s"
+             % (base, ",".join(f'"{s}"' for s in where), " ".join(fields)))
     end = time.time() + deadline_s
     while True:
         rows = h.search(query)
         got = {}
         for r in rows:
-            got.setdefault(r["source"], []).append(r)
+            got.setdefault(where[r["source"]], []).append(r)
         if all(len(got.get(s, [])) >= n for s, n in want.items()) or time.time() > end:
             return got
         time.sleep(5)
@@ -96,7 +116,8 @@ def write_inputs(streams, work):
     os.makedirs(inputs)
     conf = ""
     for name in streams:
-        conf += f"[monitor:///test-data/{name}]\nindex = main\nsourcetype = gen0sec:synapse\n\n"
+        conf += (f"[monitor:///test-data/{name}]\nindex = main\nsourcetype = gen0sec:synapse\n"
+                 "crcSalt = <SOURCE>\n\n")
     for port, extra in (("tcp://5514", "connection_host = none\n"),
                         ("tcp://5515", "connection_host = none\n"),
                         ("udp://5516", "connection_host = none\n")):
@@ -106,7 +127,58 @@ def write_inputs(streams, work):
     return os.path.dirname(inputs)
 
 
+def run_controls(streams, data):
+    """Baseline first: the unbroken add-on must pass through the same path,
+    or a failing check would not mean the control was caught."""
+    import controls
+    work = tempfile.mkdtemp(prefix="g0s-controls-")
+    results = []
+    t_all = time.time()
+    try:
+        runs = [("baseline", None)] + [(c.name, c) for c in controls.CONTROLS]
+        for i, (name, c) in enumerate(runs):
+            t_ctl = time.time()
+            if c is not None:
+                broken = os.path.join(work, f"ta{i}")
+                controls.make_copy(c, TA_DIR, broken)
+                h.install_ta(broken)
+            h.restart()
+            t0 = time.time() - 2
+            tag = f"c{i}"
+            send(streams, data, tag)
+            got = collect(streams, since=t0, tag=tag)
+            fails = []
+            for mod in streams.values():
+                fails += mod.check(got)
+            dt = time.time() - t_ctl
+            if c is None:
+                if fails:
+                    print("FAIL: the unbroken add-on fails its own checks:")
+                    for f in fails:
+                        print("  " + f)
+                    return 1
+                print(f"baseline ok ({dt:.0f}s)", flush=True)
+                continue
+            hit = [f for f in fails if c.must_fail.search(f)]
+            if hit:
+                print(f"killed {name} ({len(fails)} problems, {dt:.0f}s)", flush=True)
+            else:
+                extra = f"; {len(fails)} problems, none matching {c.must_fail.pattern!r}" if fails else ""
+                print(f"survived {name}{extra} ({dt:.0f}s)", flush=True)
+                for f in fails[:5]:
+                    print("  " + f)
+            results.append((name, bool(hit)))
+        # Put the real add-on back, so KEEP=1 leaves a container that is not broken.
+        h.install_ta(TA_DIR)
+    finally:
+        shutil.rmtree(work, ignore_errors=True)
+    survived = [n for n, k in results if not k]
+    print(f"{len(results) - len(survived)} of {len(results)} controls killed, total {time.time() - t_all:.0f}s")
+    return 1 if survived else 0
+
+
 def main():
+    controls_mode = "--controls" in sys.argv[1:]
     if not os.path.isdir(TA_DIR):
         sys.exit(f"error: add-on not found at {TA_DIR}")
     streams = load_streams()
@@ -128,6 +200,8 @@ def main():
         h.start()
         print(f"waiting for {h.IMAGE} ...", flush=True)
         h.wait_ready()
+        if controls_mode:
+            return run_controls(streams, data)
         send(streams, data)
         got = collect(streams)
         fails = []

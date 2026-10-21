@@ -95,6 +95,45 @@ def start():
     sh("docker", "start", NAME)
 
 
+def install_ta(ta_dir):
+    """Replace the installed add-on's files with those of `ta_dir`. Files
+    that `ta_dir` lacks are left; copy a whole add-on to replace it."""
+    sh("docker", "cp", f"{ta_dir}/.", f"{NAME}:/opt/splunk/etc/apps/TA-gen0sec-synapse")
+
+
+def startup_time():
+    out = request(PORTS["mgmt"], "/services/server/info?output_mode=json", auth=ADMIN, timeout=5)
+    return json.loads(out)["entry"][0]["content"]["startup_time"]
+
+
+def inputs_listening():
+    """True when splunkd listens on the TCP and UDP input ports. Probed from
+    inside the container: Docker's proxy accepts a connection on a published
+    port whether or not anything listens behind it."""
+    for port in (5514, 5515):
+        if sh("docker", "exec", NAME, "bash", "-c", f"exec 3<>/dev/tcp/127.0.0.1/{port}", check=False).returncode:
+            return False
+    udp = sh("docker", "exec", NAME, "netstat", "-lun", check=False)
+    return udp.returncode == 0 and ":5516 " in udp.stdout
+
+
+def restart(deadline_s=300):
+    """Restart splunkd through its REST endpoint and wait until a new process
+    answers on the management port and HEC, and listens on the input ports. (`splunk
+    restart` through docker exec leaves splunkd dead.)"""
+    before = startup_time()
+    request(PORTS["mgmt"], "/services/server/control/restart", data=b"", auth=ADMIN)
+    end = time.time() + deadline_s
+    while time.time() < end:
+        try:
+            if startup_time() != before and hec_token_accepted() and inputs_listening():
+                return
+        except Exception:
+            pass
+        time.sleep(2)
+    sys.exit("error: Splunk did not come back after a restart; see `docker logs %s`" % NAME)
+
+
 def remove():
     sh("docker", "rm", "-f", NAME, check=False)
 
@@ -118,7 +157,8 @@ def wait_ready(deadline_s=600):
         try:
             if health == "healthy" and hec_token_accepted():
                 request(PORTS["mgmt"], "/services/server/info", auth=ADMIN, timeout=5)
-                return
+                if inputs_listening():
+                    return
         except Exception:
             pass
         time.sleep(5)
