@@ -19,5 +19,34 @@ particular traffic to produce:
 7. a record without `http`, which Synapse's schema allows;
 8. a blocked POST with an 8 KiB body, so the record is over 10 KB.
 
+`streams/access.py` derives nineteen more records from these when it runs, as a
+relay that re-writes the JSON would send them. They are not in
+`records.jsonl`. Each takes the `request_id` of its base record plus a
+suffix. Records 1, 4 and 8 each give three, which are the same JSON in another
+text form:
+
+- `-sorted-spaced`: `json.dumps(rec, sort_keys=True)`;
+- `-sorted-compact`: sorted keys, no spaces;
+- `-spaced`: a space around every separator and after the opening brace.
+
+Nine more, from record 1:
+
+- `-hdr-native`, `-hdr-sorted-compact`, `-hdr-sorted-spaced`: the record
+  with request headers named `timestamp` (a day before the record's own) and `request_id`. In
+  sorted order they come before the record's own fields;
+- `-err-sorted-compact`, `-err-sorted-spaced`: the record with an `error`
+  object, sorted, whose message holds a quote, a backslash and braces;
+- `-err-long-sorted-compact`, `-err-long-sorted-spaced`: the same with a plain
+  message of over 4000 characters;
+- `-err-esc-sorted-compact`, `-err-esc-sorted-spaced`: a message of over 4000
+  characters with quotes, backslashes and braces throughout.
+
+The nineteenth (`-sd`, from record 1, sorted and compact) is sent on tcp:5515
+only, behind an RFC 5424 header with structured data `[x@1 k="{v}"]`.
+
+Every source also gets one line that is not an access record: a record wrapped
+in another JSON object (`{"host":"g0s-envelope","record":{...}}`). It must keep
+the input's sourcetype and stay whole.
+
 `test_splunk.py` sends these lines as they are, and with the syslog headers
 that each ingest path adds.

@@ -18,8 +18,20 @@ Synapse sends app logs and access logs to syslog under the same identifier
 - It removes any syslog header in front of an access record, so `_raw` is the
   record's JSON. This covers an RFC 3164 or RFC 5424 header, AxoSyslog's file
   format, and its HEC raw format.
-- It takes `_time` from the record's own `timestamp` (UTC), not from the
-  syslog header.
+- It recognises an access record that a relay re-serialised: spaces around
+  the JSON separators, keys in sorted order (so `event_type` is not first),
+  and an RFC 5424 header whose structured data contains `{`. `_raw` stays the
+  record as the relay sent it. The header must be under 256 bytes. Keys that
+  sort in front of `event_type` may hold strings, numbers, `true`, `false`,
+  `null` or one level of object (the `error` of a failed request); an array
+  or a deeper object there stops the match, and so does a key that sorts
+  in front of `event_type` and pushes it past the first 16384 bytes (an `error`
+  message of about 16 KB). A record inside another JSON
+  object, such as `{"host":"r1","record":{...}}`, is not recognised and stays
+  as it came. A line that holds an access record within its first 256
+  characters is routed, so an app log line that quotes one is too.
+- It takes `_time` from the record's own top-level `timestamp` (UTC), not from
+  the syslog header and not from a request header named `timestamp`.
 - It takes `host` from the syslog header when a program tag follows the host
   (`host prog[pid]:`), or from an RFC 5424 header, and it may be an IPv4 or
   IPv6 address. A line with no host in its
