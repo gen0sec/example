@@ -42,3 +42,13 @@ jobs:
       - run: docker --version
       # The test uses only the standard library, so the runner's python3 does.
       - run: make test-splunk
+
+  fail2ban:
+    runs-on: ${{ (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) && 'ubicloud-standard-2' || 'ubuntu-latest' }}
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - run: sudo apt-get update && sudo apt-get install -y --no-install-recommends fail2ban
+      - run: make test-fail2ban
