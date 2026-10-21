@@ -56,12 +56,33 @@ Then use it in one of two ways.
 
 - **As the whole config.** Copy it to `/etc/syslog-ng/syslog-ng.conf` and
   reload syslog-ng. Use this on a host that runs syslog-ng only for Synapse.
-- **Merged into an existing config.** Copy the `@define` lines, the `filter`,
-  the `destination` and the `log` block. Replace the `source(s_synapse_local)`
-  in the `log` block with the source your distribution already reads
-  `/dev/log` with (often `s_src` or `s_sys`). Keep the UDP source if Synapse
-  may fall back to it. Keep `flags(final)` only if you do not want Synapse's
-  lines in the local log files.
+  Every other program's messages that reach `/dev/log` are then dropped, because
+  the config has no other log path. On a host without systemd, syslog-ng owns
+  `/dev/log`, so this means all local syslog.
+- **Merged into an existing config.** Copy these blocks: the `@define` lines,
+  `s_synapse_udp`, `f_synapse`, `d_synapse_remote` and the `log` block. Do not
+  copy `s_synapse_local`. Replace `source(s_synapse_local)` in the `log` block
+  with the source your distribution already reads `/dev/log` with (often
+  `s_src` or `s_sys`). A second `system()` source MUST NOT be added: AxoSyslog
+  4.29.0 refuses to start with `conflicting persist-names` on `/dev/log`. Keep
+  `s_synapse_udp` if Synapse may fall back to it. Keep `flags(final)` only if
+  you do not want Synapse's lines in the local log files.
+- **Order matters when merging.** The `log` block MUST come before the
+  distribution's log paths. `flags(final)` only stops paths that run after it.
+  A `conf.d` drop-in that Debian's `syslog-ng.conf` includes at its end runs
+  after them, so there `final` does nothing and Synapse's lines still reach the
+  local files. Put the block in the main file above the distribution's paths.
+
+The filter matches the program name `synapse` exactly. If you change
+`logging.syslog.identifier` in Synapse, change the filter in `f_synapse` too.
+Without `type(string)` the match is a regular expression, and it would also
+forward `matrix-synapse` and `synapse-worker`.
+
+Synapse 0.8.8 connects to the syslog socket once and never reconnects. This is
+read from the code, not measured. If you restart the syslog daemon and it
+recreates `/dev/log`, or a container's bind mount keeps the old file, Synapse
+stops logging to syslog until Synapse (and its container) restarts. A reload
+keeps the socket. Restart Synapse after you restart the syslog daemon.
 
 The config does not open TCP 601. Synapse's TCP fallback writes messages with
 no delimiter, so syslog-ng would merge them. If a host has no `/dev/log`,
@@ -75,9 +96,9 @@ are observations from that run:
 
 - Without systemd, `system()` resolves to
   `unix-dgram("/dev/log" so_rcvbuf(8192) flags(syslog-protocol))`.
-- The forwarded message has a hostname. For a message from `/dev/log` it is the
-  sender's own. For one from the UDP source it is `localhost`. The day is
-  space-padded (`Oct  5`), unlike on Synapse's wire.
+- The forwarded message has a hostname. For both paths it is the
+  sender's own. The UDP source rewrites `HOST` to `$LOGHOST`: without it those
+  messages carry `localhost`. The day is space-padded (`Oct  5`), unlike on Synapse's wire.
 - On the `/dev/log` path, the pid in `synapse[PID]` is the sending process's
   real pid, not the one in the text.
 - Priority, program and message text arrive unchanged for records of 2.3 KB
@@ -125,7 +146,10 @@ Send a test message through the local syslog daemon:
 logger -t synapse -p daemon.info "forwarding test"
 ```
 
-Check the destination counters. `dropped` MUST stay 0 and `queued` SHOULD be 0:
+Check the destination counters. `dropped` MUST stay 0 and `queued` SHOULD be 0.
+These counters say nothing about loss on the network: UDP gives syslog-ng no
+feedback, so `dropped=0` and `written` keep growing while a path that drops
+fragments loses every access record. Use the capture below to see that loss.
 
 ```bash
 syslog-ng-ctl stats | grep d_synapse_remote
@@ -145,7 +169,7 @@ not arrive were dropped on the path.
 
 ```bash
 make test-syslog-ng            # needs docker
-make test-syslog-ng-controls   # breaks the config five ways; each MUST be caught
+make test-syslog-ng-controls   # breaks the config seven ways; each MUST be caught
 ```
 
 The test starts two containers on a private docker network and removes only

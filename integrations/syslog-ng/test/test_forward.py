@@ -8,8 +8,12 @@ UDP 127.0.0.1:514, one datagram per message, as Synapse 0.8.8 does:
     <PRI>Mmm DD HH:MM:SS synapse[PID]: message
 
 The test then checks that each message that should arrive did, with its
-priority, program, pid and text unchanged, and that the one above the UDP
-ceiling did not.
+priority, program, host and text unchanged, that the one above the UDP ceiling
+arrives cut, and that other programs' lines (sshd, matrix-synapse) are not
+forwarded. A local log path after the Synapse one checks `flags(final)`.
+
+It runs the config twice: as the whole config, and merged into a distro-like
+base the way the README describes.
 
 Needs docker. Usage, from integrations/syslog-ng/:  python3 test/test_forward.py
 Environment:
@@ -46,23 +50,31 @@ RECEIVER_PORT = 1514
 SENDER_HOSTNAME = "g0s-sender"
 # <PRI>Mmm DD HH:MM:SS HOST synapse[PID]: TEXT, as forwarded. The day is
 # space-padded here, unlike on Synapse's wire.
-LINE = re.compile(r"^<(\d+)>[A-Z][a-z]{2} [ \d]\d \d\d:\d\d:\d\d (\S+) synapse\[(\d+)\]: (.*)$", re.S)
+LINE = re.compile(r"^<(\d+)>[A-Z][a-z]{2} [ \d]\d \d\d:\d\d:\d\d (\S+) (\S+?)\[(\d+)\]: (.*)$", re.S)
+# A local log path after the Synapse one, as a distro config has. It writes
+# the program and the text, so the test can see what reached it.
+LOCAL_DEST = 'destination d_local { file("/var/log/local.log" template("$PROGRAM|$MSG\\n")); };\n'
+DISTRO_BASE = "@version: 4.26\nsource s_src { system(); internal(); };\n"
 
-# outcome: "full" (arrives unchanged) or "truncated" (arrives cut to the UDP
-# datagram ceiling).
-Case = namedtuple("Case", "name mode pri text outcome")
+# outcome: "full" (arrives unchanged), "truncated" (arrives cut to the UDP
+# datagram ceiling) or "absent" (is not forwarded).
+Case = namedtuple("Case", "name mode pri text outcome program", defaults=["synapse"])
 UDP_MAX = 65507
 Control = namedtuple("Control", "name pattern replacement must_fail")
 
 # Each pattern must match exactly once in the config, so a control cannot
 # pass because the config moved on from it.
 CONTROLS = [
-    Control("system() source removed", r"^\s*system\(\);\n", "",
+    Control("system() source removed", r"^\s*system\(\);\n", "    internal();\n",
             re.compile(r"^unix .*not delivered")),
-    Control("localhost UDP source removed", r"^\s*network\(ip\(\"127\.0\.0\.1\"\).*\n", "",
+    Control("localhost UDP source removed", r"^(\s*)source \{ network\(ip\(\"127\.0\.0\.1\"\).*\n", r"\1source { internal(); };\n",
             re.compile(r"^udp .*not delivered")),
-    Control("filter matches another program", r'program\("synapse"\)', 'program("other")',
+    Control("filter matches another program", r'program\("synapse" type\(string\)\)', 'program("other" type(string))',
             re.compile(r"^unix .*not delivered")),
+    Control("filter removed", r"^\s*filter\(f_synapse\);\n", "",
+            re.compile(r"^(unix|udp) (sshd|matrix-synapse): forwarded")),
+    Control("flags(final) removed", r"^\s*flags\(final\);\n", "",
+            re.compile(r"^local: ")),
     Control("destination port changed", r"^(    network\(\"`synapse_remote_host`\" transport\(\"udp\"\) )port\(`synapse_remote_port`\)", r"\1port(9)",
             re.compile(r"^unix .*not delivered")),
     # Proves the test sees local truncation: a log-msg-size below the record
@@ -94,28 +106,48 @@ def padded(record, size):
 
 
 def cases():
-    recs = records()
     out = []
     app = [("app-error", 27, "ERROR synapse: upstream connection failed"),
            ("app-info", 30, "INFO synapse: configuration reloaded")]
     for mode in ("unix", "udp"):
+        # The texts differ per path, so each path is checked on its own.
+        recs = [r.replace('"request_id":"req_', '"request_id":"req_%s_' % mode) for r in records()]
         for name, pri, text in app:
-            out.append(Case(f"{mode} {name}", mode, pri, text, "full"))
+            out.append(Case(f"{mode} {name}", mode, pri, f"{text} ({mode})", "full"))
         for i, rec in enumerate(recs):
             out.append(Case(f"{mode} record-{i}", mode, 30, rec, "full"))
         for label, size in (("16k", 16 * 1024), ("60k", 60 * 1024)):
             out.append(Case(f"{mode} record-{label}", mode, 30, padded(recs[0], size), "full"))
+    for mode in ("unix", "udp"):
+        for prog in ("sshd", "matrix-synapse"):
+            out.append(Case(f"{mode} {prog}", mode, 38, f"INFO {prog} line ({mode})", "absent", prog))
     # Above the UDP datagram ceiling of 65,507 bytes.
     out.append(Case("unix record-70k", "unix", 30, padded(recs[0], 70 * 1024), "truncated"))
     # Sent last on each path: once they arrive, anything sent before them has.
     for mode in ("unix", "udp"):
-        out.append(Case(f"{mode} sentinel", mode, 30, "INFO synapse: sentinel", "full"))
+        out.append(Case(f"{mode} sentinel", mode, 30, f"INFO synapse: sentinel ({mode})", "full"))
     return out
 
 
 def wire(case, pid):
     ts = time.strftime("%b %d %H:%M:%S")
-    return f"<{case.pri}>{ts} synapse[{pid}]: {case.text}"
+    return f"<{case.pri}>{ts} {case.program}[{pid}]: {case.text}"
+
+
+def whole_conf(conf):
+    """The config as the whole file, plus a local log path after it."""
+    return conf + LOCAL_DEST + "log { source(s_synapse_local); source(s_synapse_udp); destination(d_local); };\n"
+
+
+def merge_conf(conf):
+    """The README's merge steps: copy the blocks, replace s_synapse_local with
+    the distro's source, copy no second system(). The distro's own log path
+    comes after."""
+    conf, n = re.subn(r"^source s_synapse_local \{.*?^\};\n", "", conf, flags=re.M | re.S)
+    if n != 1:
+        sys.exit("error: the config must have one `source s_synapse_local { ... };` block")
+    conf = conf.replace("source(s_synapse_local);", "source(s_src);").replace("@version: 4.26\n", "")
+    return DISTRO_BASE + conf + LOCAL_DEST + "log { source(s_src); source(s_synapse_udp); destination(d_local); };\n"
 
 
 class Run:
@@ -208,6 +240,7 @@ def set_remote(conf, run):
 
 
 def run_test(conf_text, verbose=False, quiet=False, deadline_s=20):
+    """conf_text is the finished config, local log path included."""
     """Run every case against `conf_text`; return a list of problems."""
     run = Run()
     problems = []
@@ -225,7 +258,7 @@ def run_test(conf_text, verbose=False, quiet=False, deadline_s=20):
         lines = []
         while time.time() < end:
             lines = run.received()
-            if sum(1 for l in lines if l) >= len(sent):
+            if sum(1 for l in lines if l) >= sum(1 for c, _ in sent if c.outcome != "absent"):
                 break
             time.sleep(1)
         lines = run.received()
@@ -237,13 +270,16 @@ def run_test(conf_text, verbose=False, quiet=False, deadline_s=20):
         for l in lines:
             m = LINE.match(l)
             if m:
-                got[(m.group(2), m.group(4))] = (int(m.group(1)), int(m.group(3)))
+                got[(m.group(2), m.group(3), m.group(5))] = (int(m.group(1)), int(m.group(4)))
                 if len(l.encode()) == UDP_MAX:
-                    cut[m.group(2)] = m.group(4)
+                    cut[m.group(2)] = m.group(5)
         for (case, pid), res in zip(sent, results):
-            host = SENDER_HOSTNAME if case.mode == "unix" else "localhost"
-            hit = got.get((host, case.text))
-            if case.outcome == "full":
+            host = SENDER_HOSTNAME
+            hit = got.get((host, case.program, case.text))
+            if case.outcome == "absent":
+                if hit is not None:
+                    problems.append("%s: forwarded, but its program is not synapse" % case.name)
+            elif case.outcome == "full":
                 if hit is None:
                     problems.append("%s: not delivered (sender: %s)" % (case.name, res))
                 elif hit[0] != case.pri:
@@ -256,6 +292,14 @@ def run_test(conf_text, verbose=False, quiet=False, deadline_s=20):
                     problems.append("%s: delivered whole, over the UDP ceiling" % case.name)
                 elif body is None or not case.text.startswith(body):
                     problems.append("%s: no datagram of %d bytes holding its start" % (case.name, UDP_MAX))
+        local = run.exec(run.send, "sh", "-c", "cat /var/log/local.log 2>/dev/null; true").stdout.split("\n")
+        if verbose:
+            print("local log path got %d lines" % len([l for l in local if l]))
+        for case, _ in sent:
+            if case.outcome == "absent" and f"{case.program}|{case.text}" not in local:
+                problems.append("local: %s did not reach the local log path" % case.name)
+        if any(l.startswith("synapse|") for l in local):
+            problems.append("local: a synapse line reached the local log path (flags(final))")
         if verbose or (problems and not quiet):
             print("--- sender stats (destination and source counters)")
             print("\n".join(l for l in run.stats().splitlines() if "dst." in l or "src." in l))
@@ -273,7 +317,8 @@ def main():
     with open(conf_path) as f:
         conf_text = f.read()
     if "--controls" not in args:
-        problems = run_test(conf_text, verbose)
+        problems = run_test(whole_conf(conf_text), verbose)
+        problems += ["[merged] " + p for p in run_test(merge_conf(conf_text), verbose)]
         for p in problems:
             print("FAIL " + p)
         print("%d problem(s)" % len(problems) if problems else "ok")
@@ -283,7 +328,7 @@ def main():
         broken, n = re.subn(c.pattern, c.replacement, conf_text, flags=re.M)
         if n != 1:
             sys.exit("error: control %r matched %d times, want 1" % (c.name, n))
-        problems = run_test(broken, verbose, quiet=True)
+        problems = run_test(whole_conf(broken), verbose, quiet=True)
         killed = any(c.must_fail.search(p) for p in problems)
         print("%s: %s" % ("killed" if killed else "SURVIVED", c.name))
         if not killed:
