@@ -6,15 +6,31 @@ or fail only elsewhere, the control survived and the test has a gap.
 
 `pattern` must match exactly once (MULTILINE), or applying the control is an
 error, so a control cannot pass because the add-on moved on from it.
+
+`kind` says how Splunk takes the change up:
+  "index"   (the default) a restart, then the samples are sent again: the
+            setting acts when an event is indexed (TRANSFORMS, SEDCMD,
+            INGEST_EVAL, TIME_*, LINE_BREAKER, and the transforms.conf stanzas
+            they use).
+  "search"  a config reload, then the baseline's events are searched again:
+            the setting acts when a search reads them (EVAL-, FIELDALIAS-,
+            EXTRACT-, REPORT-, LOOKUP-, KV_MODE in props.conf; eventtypes.conf,
+            tags.conf). Declaring it is not enough: check_kind() refuses a
+            "search" control that changes any other line, so a control cannot
+            be run the cheap way and survive for the wrong reason.
 """
+import difflib
 import os
 import re
 import shutil
 import sys
 from collections import namedtuple
 
-Control = namedtuple("Control", "name path pattern replacement must_fail")
+Control = namedtuple("Control", "name path pattern replacement must_fail kind", defaults=("index",))
+KINDS = ("index", "search")
 
+SEARCH_TIME_FILES = ("default/eventtypes.conf", "default/tags.conf")
+SEARCH_TIME_SETTING = re.compile(r"(EVAL-|FIELDALIAS-|EXTRACT-|REPORT-|LOOKUP-|KV_MODE\b)")
 PROPS = "default/props.conf"
 TRANSFORMS = "default/transforms.conf"
 
@@ -38,7 +54,7 @@ CONTROLS = [
             re.compile(r"^tcp:5514 \S+: _time ")),
     Control("EVAL-action removed", PROPS,
             r"^EVAL-action = .*\n", "",
-            re.compile(r"^tcp:5514 \S+: action=None, want ")),
+            re.compile(r"^tcp:5514 \S+: action=None, want "), "search"),
     Control("host transforms removed from TRANSFORMS-g0s", PROPS,
             r"^(TRANSFORMS-g0s = )gen0sec_synapse_host_5424, gen0sec_synapse_host_bsd, ", r"\1",
             re.compile(r"^tcp:5514 \S+: host '\S*', want 'synapse-host'")),
@@ -57,7 +73,7 @@ CONTROLS = [
             re.compile(r"^tcp:5515: g0s-keep-ipv6-5424: host ")),
     Control("challenge dropped from the action rule", PROPS,
             r"\(block\|challenge\|ratelimit\)", "(block|ratelimit)",
-            re.compile(r"^tcp:5514 req_1792506501500000002: action='allowed', want 'blocked'")),
+            re.compile(r"^tcp:5514 req_1792506501500000002: action='allowed', want 'blocked'"), "search"),
     Control("time transform removed from [gen0sec:synapse:access]", PROPS,
             r"^TRANSFORMS-g0s-time = .*\n", "",
             re.compile(r"^hec-event \S+: _time ")),
@@ -140,10 +156,39 @@ def apply(control, ta_dir):
         f.write(new)
 
 
+def _edited(control, ta_dir):
+    """The file's lines before and after the control, as (old, new)."""
+    path = os.path.join(ta_dir, control.path)
+    with open(path) as f:
+        text = f.read()
+    return text.splitlines(), re.sub(control.pattern, control.replacement, text, flags=re.MULTILINE).splitlines()
+
+
+def check_kind(control, ta_dir):
+    """Exit with an error unless `control.kind` is known and, for "search", the
+    control changes only search-time lines. Anything else is "index"."""
+    if control.kind not in KINDS:
+        sys.exit(f"error: control {control.name!r}: kind {control.kind!r}, want one of {KINDS}")
+    if control.kind == "index":
+        return
+    if control.path in SEARCH_TIME_FILES:
+        return
+    if control.path == PROPS:
+        old, new = _edited(control, ta_dir)
+        changed = [l[2:] for l in difflib.ndiff(old, new) if l[:2] in ("- ", "+ ")]
+        if all(not l.strip() or SEARCH_TIME_SETTING.match(l) for l in changed):
+            return
+    sys.exit(f"error: control {control.name!r} is kind 'search' but is not a search-time edit of {control.path}")
+
+
 def make_copy(control, ta_dir, dest):
-    """A fresh broken copy of `ta_dir` at `dest`, world-readable so splunkd can read it."""
+    """A fresh copy of `ta_dir` at `dest` with `control` applied (none: the
+    add-on as it is), world-readable so splunkd can read it. Install this, not
+    `ta_dir`: docker cp keeps the checkout's modes and owner, and a checkout
+    made under umask 077 is unreadable to the splunk user."""
     shutil.copytree(ta_dir, dest)
-    apply(control, dest)
+    if control is not None:
+        apply(control, dest)
     for root, dirs, files in os.walk(dest):
         for d in dirs:
             os.chmod(os.path.join(root, d), 0o755)

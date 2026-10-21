@@ -3,7 +3,7 @@ SYNAPSE_BIN ?= synapse
 export SYNAPSE_BIN
 
 .DEFAULT_GOAL := help
-.PHONY: help install lint test test-check test-splunk test-splunk-controls test-fail2ban fmt clean
+.PHONY: help install lint test test-check test-splunk test-splunk-unit test-splunk-controls test-fail2ban fmt clean
 
 help: ## List the targets
 	@grep -hE '^[a-zA-Z0-9_-]+:.*## ' $(MAKEFILE_LIST) | awk -F':.*## ' '{printf "  %-14s %s\n", $$1, $$2}'
@@ -22,6 +22,9 @@ test-check: ## Run the controls that prove scripts/check.sh can fail
 
 test-splunk: ## Test the Splunk add-on in Splunk 9.0.1 (needs docker; pulls a ~1 GB image)
 	cd integrations/splunk && python3 test/test_splunk.py
+
+test-splunk-unit: ## Unit-test the Splunk controls runner against a fake Splunk (no docker)
+	cd integrations/splunk && python3 -m unittest discover -s test -p 'test_controls_runner.py'
 
 test-splunk-controls: ## Break the Splunk add-on one way at a time and check the test notices (needs docker)
 	cd integrations/splunk && python3 test/test_splunk.py --controls
