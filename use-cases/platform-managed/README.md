@@ -11,7 +11,13 @@ There is no local rules file.
   [installation guide](https://docs.gen0sec.com/docs/client/installation); this
   example does not repeat it.
 - Linux with XDP support on the interface. The config uses the XDP IDS and
-  `firewall.mode: auto`, which picks XDP, then nftables, then iptables.
+  `firewall.mode: auto`, which picks XDP, then nftables, then iptables. The
+  config leaves `network.iface` unset, so XDP attaches to every physical
+  interface that is up; a commented example shows how to pick one.
+  `capture.interface` is set to the example uplink `eth0`. It does not choose
+  the XDP interface: it is read only by the AF_PACKET capture and IDS fallback,
+  and when unset those bind to every interface, including `lo`, bridges and
+  veth. Set both `network.iface` and `capture.interface` to your uplink.
 - Privileges to load and attach XDP programs: run as root, or give the process
   `CAP_BPF` and `CAP_NET_ADMIN`. Packet capture needs `CAP_NET_RAW` as well.
   Run as a container, the image needs the capabilities its installation guide
@@ -48,7 +54,10 @@ service, see the installation guide.
 
 - **Access rules and the rest of the rule config.** The agent pulls them from
   the platform and applies them, and a config worker keeps them current. A
-  copy of the last config is cached in the working directory.
+  copy of the last config is cached as `cached_config.json` in
+  `daemon.working_directory`, which `config.yaml` sets to `/var/lib/synapse`.
+  The code default is `/`, so without that line the cache lands at
+  `/cached_config.json`.
 - **Threat database** (`platform.threat`). An MMDB of threat intelligence,
   checked for a new version every `refresh_secs` seconds (default 300).
 - **GeoIP** (`platform.geoip`). A combined country and ASN database, checked
@@ -61,9 +70,14 @@ service, see the installation guide.
 - **Ban ledger and fleet bans** (`platform.ban_ledger`, `platform.fleet_bans`).
   The agent uploads the bans it decided. The platform corroborates them across
   your agents and publishes the result, which the agent downloads. In this set
-  the downloaded set is advisory: matches are counted and logged and nothing
-  is blocked. `enforce: true` installs them in the kernel filter; turn it on
+  the downloaded set is advisory: matches are counted and nothing is
+  blocked. `enforce: true` installs them in the kernel filter; turn it on
   only after advisory mode has shown how many false positives you get.
+
+Two paths use two different directories. `daemon.working_directory` holds the
+config cache. The process working directory is where relative paths such as the
+default `managed_rules_path`, the fleet ban cache and models resolve; that is
+why `config.yaml` gives absolute paths.
 
 ## Local rules are not read
 
@@ -98,16 +112,42 @@ The agent checks the key against the platform before it goes on:
 as the code shows, it sends access logs, fingerprint events and WAF events to
 the platform, and OpenTelemetry data to the platform's telemetry endpoint. Set
 it to `false` to stop both. With a key set, the agent also sends a status
-heartbeat to the platform whatever this key says; it holds the agent's name and
-the features that are on.
+heartbeat to the platform whatever this key says. It is sent every 30 seconds
+(change it with `AGENT_HEARTBEAT_SECS`) and holds:
+
+- the agent name, hostname, version, mode, process id and uptime;
+- the names of the network interfaces;
+- the OS and architecture, `platform_base_url` and whether XDP is loaded;
+- the capabilities that are on, and per-feature metadata;
+- the tags in `AGENT_TAGS` and the addresses in `AGENT_IP_ADDRESSES`, if set.
 
 ## Limits
 
 - The IDS is detect-only: `enforce_block` is `false`.
-- The XDP IDS falls back to AF_PACKET when XDP is unavailable, and the
-  AF_PACKET IDS cannot load managed rules.
+- Without XDP this set runs no IDS. The XDP IDS is skipped, and the AF_PACKET
+  fallback refuses an empty `rule_paths` with `thalamus_ids(afpacket): no IDS
+  rule paths configured, not starting`. The startup summary still reports
+  `"thalamus_ids": true`, so look for that warning, not the flag. To run the
+  fallback, add `ids.rule_paths`; it cannot load managed rules.
 - `ban_ledger` and `fleet_bans` work only with a key that has the permissions
   above.
 - This set was checked with `synapse --check-config`. It was not run against
   the platform, so the platform side (what rules your account gets) is not
   shown here.
+
+## See it working
+
+Look for these lines in the console or in the log file:
+
+- `API key validation failed` means the platform refused the key and Synapse
+  did not start. `Could not validate the API key` means it could not ask; it
+  keeps going.
+- `[agent_status] capabilities (N) at boot: [...]` lists what this agent
+  reports to the platform. It appears once the key is set.
+- `[thalamus_ids] Started (source=xdp, rules=N, ...` shows the XDP IDS is up.
+  After the platform writes a new rule bundle, `[thalamus_ids] Config reload:
+  hot-swapped IDS engine (rules=N, ...` gives the new rule count.
+  `ids.enabled=true and ids.capture_mode=xdp but no active XDP skeletons are
+  attached; XDP IDS worker not started` means XDP did not attach.
+- `[fleet-bans] loaded N bans version=...` shows the fleet set was downloaded.
+  In advisory mode there is no per-match line; matches are only counted.

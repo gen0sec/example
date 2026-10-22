@@ -4,6 +4,19 @@
 # file: with a key Synapse does not read security_rules.yaml.
 mode: agent
 
+# The config cache cached_config.json is written here. The code default is /,
+# which would put it at /cached_config.json. This is not the process working
+# directory: the managed rules path below is absolute for that reason.
+daemon:
+  working_directory: "/var/lib/synapse"
+
+# Interfaces. Left unset, XDP, the XDP IDS and XDP capture attach to every
+# physical interface that is up. To pick them, set network.interfaces, or
+# network.iface / network.ifaces (not both forms). Set it to the same uplink as
+# capture.interface below:
+#network:
+#  iface: eth0
+
 platform:
   # Master switch. false clears the key and turns off every platform feature
   # except GeoIP. Default: true.
@@ -57,11 +70,17 @@ firewall:
 # Packet capture for fingerprinting. Default: true.
 capture:
   enabled: true
+  # Chooses the interface of the AF_PACKET capture and IDS fallback, not of
+  # XDP (that is network.iface above). Unset, they bind to every interface,
+  # lo, bridges and veth included. Replace eth0 with your uplink.
+  interface: eth0
 
 ids:
   enabled: true
-  # Default: xdp. It falls back to AF_PACKET when XDP is unavailable, and the
-  # AF_PACKET IDS cannot load managed rules.
+  # Default: xdp. Without XDP the XDP IDS is skipped. The AF_PACKET fallback
+  # needs rule_paths and does not start with an empty list, so this set then
+  # runs no IDS at all. capture.interface is read only by that
+  # fallback; set it and network.iface both to your uplink.
   capture_mode: xdp
   # No rule_paths: the rules come from the platform. The XDP IDS starts with no
   # rules and loads the managed file once it is written.
