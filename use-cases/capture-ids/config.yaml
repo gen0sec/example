@@ -19,8 +19,10 @@ capture:
   # Default: true.
   enabled: true
   # Used only by the AF_PACKET capture and the AF_PACKET IDS fallback. It does
-  # not choose the XDP interface: that is `network` above. Default: unset
-  # (auto-detected). Set it to the same uplink as `network.iface`.
+  # not choose the XDP interface: that is `network` above. Default: unset,
+  # which binds the AF_PACKET paths to every interface (lo, bridges and veths
+  # included); `network.iface` does not narrow it. Keep it set to the same
+  # uplink as `network.iface`.
   interface: eth0
 
 ids:

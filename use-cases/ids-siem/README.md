@@ -32,7 +32,8 @@ Set the interface as described in "Which interface" below.
 
 `network.iface` (or `network.interfaces`) chooses the interfaces the XDP
 program and the XDP IDS run on. Left unset, as here, Synapse auto-detects every
-physical interface that is up. `capture.interface` is read only by the
+physical interface that is up. Unset, `capture.interface` binds every
+interface, so keep it set. It is read only by the
 AF_PACKET capture and the AF_PACKET IDS fallback; it does not choose the XDP
 interface. To run on one interface, set both to it (the commented lines in
 `config.yaml`).
