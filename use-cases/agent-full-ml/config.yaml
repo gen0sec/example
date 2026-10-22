@@ -34,7 +34,7 @@ firewall:
   enabled: true
   # Default: auto: XDP, then nftables, then iptables, then none. Unlike a
   # forced `xdp`, auto also sets up netfilter for the access rules when XDP
-  # cannot load.
+  # cannot load. Neither happens when `network.interfaces` is set.
   mode: auto
   # Smart firewall. Default: disabled. It needs a build with the amygdala
   # feature, which is on in the packages, and the firewall to be enabled.

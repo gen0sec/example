@@ -28,7 +28,7 @@ source of a flow that matches a blocking rule.
 `firewall.mode: xdp` forces the XDP backend and has no fallback. If XDP cannot
 be loaded, Synapse logs `XDP mode forced but BPF not available` and no kernel
 firewall is installed. To fall back to nftables, then iptables, set
-`firewall.mode: auto` instead.
+`firewall.mode: auto` instead, while `network.interfaces` is unset.
 
 ## Files
 
@@ -73,7 +73,8 @@ first two.
 | Other JA4 kinds (`ja4`, `ja4s`, `ja4h` and so on) | The amygdala bridge only, through NFQUEUE or TC, plus a TTL-tracked copy | `firewall.amygdala.enabled`, and `logging.eventbridge_log.enabled` | `ttl_seconds` or `expires_at` if set |
 | IDS `enforce_block: true` | The firewall backend | A matching rule whose action is `drop`, `reject` or `block` | 300 seconds |
 
-With `backend: auto` the bridge tries `xdp`, then `nftables`, then `iptables`.
+With `backend: auto` the bridge tries `xdp`, then `nftables`, then `iptables`;
+with `network.interfaces` set, `xdp` only.
 
 Things that follow from the code:
 

@@ -21,7 +21,9 @@ network:
   # exactly one of `name`, `mac` or `pattern` (a glob over names).
   # Features: firewall, ids, ids_egress, smart_firewall, fingerprint. Each
   # still needs its global switch (firewall.mode, ids.enabled, ...), and the
-  # firewall mode must be auto or xdp. Default: unset.
+  # firewall mode must be auto or xdp. With it set, nothing falls back to
+  # nftables or iptables when XDP cannot load: the IP filter, the 5-tuple
+  # rules and the amygdala bridge are XDP-only. Default: unset.
   # interfaces:
   #   wan:
   #     match: { name: eth1 }
