@@ -11,8 +11,9 @@ help: ## List the targets
 install: ## Install the lint tooling (yamllint, pinned in requirements-dev.txt)
 	pip install -r requirements-dev.txt
 
-lint: ## Lint every YAML file
+lint: ## Lint every YAML file, and refuse a brace-less `in` in rules expressions
 	yamllint .
+	scripts/check-expressions.sh
 
 test: test-check ## Run the controls, then check every config set with `synapse --check-config` (set SYNAPSE_BIN; SYNAPSE_REQUIRE_ML=1 fails sets skipped for lack of the classifier feature)
 	scripts/check.sh
