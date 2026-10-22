@@ -175,3 +175,6 @@ make test-syslog-ng-controls   # breaks the config seven ways; each MUST be caug
 The test starts two containers on a private docker network and removes only
 those it created. `AXOSYSLOG_IMAGE` overrides the image
 (`ghcr.io/axoflow/axosyslog:4.29.0`).
+
+CI runs both targets on pull requests that touch this directory, and weekly
+(`.github/workflows/syslog-ng.yaml`).
