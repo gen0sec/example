@@ -43,6 +43,12 @@ is at [docs.gen0sec.com](https://docs.gen0sec.com).
   firewall that blocks by TCP fingerprint and source address from a local file,
   with the amygdala bridge for the other JA4 kinds and IDS blocking, with no
   API key.
+- [Capture and IDS with ML](./use-cases/capture-ids-ml/): agent mode with
+  packet capture, a detect-only XDP IDS and ML models that download with a
+  Gen0Sec API key. Needs the `-ml` package.
+- [Agent, everything on, with ML](./use-cases/agent-full-ml/): agent mode with
+  the XDP firewall, smart firewall, a blocking IDS with managed rules, capture
+  and ML models, with a Gen0Sec API key. Needs the `-ml` package.
 
 ### Being updated
 

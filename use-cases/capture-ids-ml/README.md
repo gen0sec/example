@@ -1,0 +1,74 @@
+# capture-ids-ml
+
+Synapse as a detection-only sensor with ML models: packet capture, an XDP IDS that alerts and never bans, and four ML models that download themselves. There is no smart firewall.
+
+## What you need
+
+- The Synapse `-ml` package (the classifier build, glibc 2.38+). The standard
+  package does not support the `ml:` section: it logs one "Config options not
+  supported by this build: ml" warning and runs without models. Installation
+  is covered in the
+  [installation guide](https://docs.gen0sec.com/docs/client/installation); this
+  example does not repeat it.
+- Linux with a kernel that can load XDP programs.
+- Privileges: run as root, or give the process `CAP_NET_RAW`, `CAP_BPF`,
+  `CAP_NET_ADMIN`, and `CAP_SYS_ADMIN` or `CAP_PERFMON`. The packaged
+  service unit grants `CAP_NET_ADMIN`, `CAP_NET_RAW`, `CAP_SYS_ADMIN`,
+  `CAP_BPF` and `CAP_NET_BIND_SERVICE`.
+- A Gen0Sec API key, in `platform.api_key` or the `API_KEY` environment
+  variable.
+
+## Files
+
+| File | What it does |
+|---|---|
+| [`config.yaml`](./config.yaml) | Agent mode with an API key, firewall `auto`, capture on, XDP IDS with `enforce_block: false`, and the `ml:` section |
+| [`rules/host-ids.rules`](./rules/host-ids.rules) | The demo IDS rule: it alerts on an ICMP echo containing `gen0sec-test`. It only alerts |
+
+Set `capture.interface` and `network.iface` to your uplink. They are
+separate keys: XDP, the XDP IDS and the eBPF collectors follow
+`network.iface` (unset: every physical interface that is up), and
+`capture.interface` is read only by the AF_PACKET fallbacks (unset: every
+interface). Uncomment `network.iface` and set both.
+
+## Run as a package
+
+```bash
+sudo mkdir -p /etc/synapse/rules
+sudo cp config.yaml /etc/synapse/config.yaml
+sudo cp rules/host-ids.rules /etc/synapse/rules/
+sudo synapse -c /etc/synapse/config.yaml --check-config
+sudo synapse -c /etc/synapse/config.yaml
+```
+
+Replace `YOUR_API_KEY` first. The log directory `/var/log/synapse` is created
+on start. To run it as a service, see the installation guide.
+
+## Models
+
+Each model with `enabled: true` downloads itself from the platform and is
+refreshed every 3600 s (`refresh_secs`), when `platform.api_key` is set. The
+files are saved at their `model_path`. `fingerprint_classifier` is commented
+out: it has no download and needs a local `.onnx` file that you supply. This
+set makes no claim about what any model detects.
+
+## What it shows
+
+On a test replay (a pcap file, no root) with the platform turned off, the
+config parsed, the process started, loaded the demo rule and replayed the
+packets, and the replay wrote the JA4T, JA4TS, JA4, JA4S and JA4X fingerprints.
+With the placeholder key left in place the process stops at start: the
+platform rejects the key (401). That is expected until you set a real key.
+
+The replay did not download a model, attach XDP, or enforce anything. It only
+shows that the file is valid for the `-ml` build and the process starts.
+
+## Limits
+
+- Detection, bans and models were not exercised. They need a real key, root and
+  live traffic.
+- A `security_rules.yaml` next to `config.yaml` is not read: with an API key
+  the access and firewall rules come from the platform.
+- The IDS bans only for `block`, `drop` and `reject` rules. The demo rule
+  is an alert rule.
+- Nothing is blocked by the IDS: `enforce_block: false`. There is no amygdala. Firewall `auto` still loads the XDP program (the IDS needs it), so access rules the platform delivers could be enforced by it. For a set that also blocks, see [agent-full-ml](../agent-full-ml/).
