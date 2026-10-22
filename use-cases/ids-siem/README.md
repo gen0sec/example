@@ -33,7 +33,7 @@ Set the interface as described in "Which interface" below.
 
 ## Which interface
 
-`network.iface` (or `network.interfaces`) chooses the interfaces the XDP
+`network.iface` chooses the interfaces the XDP
 program and the XDP IDS run on. Left unset, as here, Synapse auto-detects every
 physical interface that is up. Unset, `capture.interface` binds every
 interface, so keep it set. It is read only by the
