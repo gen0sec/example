@@ -1,0 +1,82 @@
+# ids-siem: Synapse as a detect-only IDS that sends its alerts to a SIEM.
+# IDS alerts and block events are rendered as ArcSight CEF, written to a file
+# and sent to a syslog collector. Nothing is blocked.
+mode: agent
+
+firewall:
+  # Default: auto (XDP, then nftables, then iptables, then none).
+  mode: auto
+
+# The XDP program and the XDP IDS run on the interfaces named here.
+# Default: unset, which auto-detects every physical interface that is up. To
+# use one interface, set both this and `capture.interface` below, for example:
+#   network:
+#     iface: eth0
+
+capture:
+  # Default: true.
+  enabled: true
+  # Used only by the AF_PACKET capture and the AF_PACKET IDS fallback. It does
+  # not choose the XDP interface: that is `network` above. Default: unset,
+  # which binds the AF_PACKET paths to every interface (lo, bridges and veths
+  # included); `network.iface` does not narrow it. Keep it set to the same
+  # uplink as `network.iface`.
+  interface: eth0
+
+ids:
+  enabled: true
+  # Default: xdp. Falls back to the AF_PACKET IDS when no XDP program is
+  # attached.
+  capture_mode: xdp
+  rule_paths:
+    - "/etc/synapse/rules/*.rules"
+  # Default: false. Alert only: do not ban the source of a matching flow.
+  enforce_block: false
+  # Default: a file under the working directory, filled by the platform's
+  # managed rules. Empty turns off pulling managed rules: this set is local-only.
+  managed_rules_path: ""
+
+logging:
+  # Default: info.
+  level: info
+  # Default: false. CEF output is started only when this is true.
+  file_logging_enabled: true
+  # Default: /var/log/synapse
+  log_directory: "/var/log/synapse"
+  # Security-event log. Default file: {log_directory}/events.log; default
+  # format: text.
+  events_log_format: json
+  # Suricata-compatible EVE JSON. Default: disabled; default file
+  # {log_directory}/eve.json; default event_types: empty (every type).
+  eve_log:
+    enabled: true
+    file: "/var/log/synapse/eve.json"
+    event_types: [alert]
+  # ArcSight CEF output. Default: disabled.
+  cef:
+    enabled: true
+    # Rotating file. Default: /var/log/synapse/cef.log. Empty leaves syslog as
+    # the only delivery.
+    file: "/var/log/synapse/cef.log"
+    # Sent in every record as `dvchost`. Default: the system hostname.
+    device_host: synapse-ids-01
+    # Synapse sends these itself, over its own socket. This is separate from the
+    # local syslog daemon. Default: disabled.
+    syslog:
+      enabled: true
+      # Resolved once at start. If it does not resolve, CEF is disabled for
+      # the run. Default: 127.0.0.1.
+      host: siem.example.com
+      # Default: 514.
+      port: 514
+      # udp or tcp. Default: udp.
+      transport: udp
+      # rfc5424 or rfc3164. Default: rfc5424.
+      rfc: rfc5424
+    streams:
+      # Security decisions. Default: true.
+      block_events: true
+      # IDS alerts. Default: false. A live IDS alert is also a block event
+      # (layer ids), so with both streams on each alert is sent twice. Set one
+      # of the two to false for one record per alert.
+      ids_alerts: true
