@@ -3,6 +3,7 @@ mode: agent
 
 firewall:
   # Backend. Default: auto (XDP, then nftables, then iptables, then none).
+  # With `network.interfaces` set, auto is XDP only: nothing falls back.
   #   xdp       eBPF/XDP, fastest, needs kernel support
   #   nftables  needs the nft command
   #   iptables  legacy, most compatible

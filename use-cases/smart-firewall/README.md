@@ -28,7 +28,7 @@ source of a flow that matches a blocking rule.
 `firewall.mode: xdp` forces the XDP backend and has no fallback. If XDP cannot
 be loaded, Synapse logs `XDP mode forced but BPF not available` and no kernel
 firewall is installed. To fall back to nftables, then iptables, set
-`firewall.mode: auto` instead.
+`firewall.mode: auto` instead, while `network.interfaces` is unset.
 
 ## Files
 
