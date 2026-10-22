@@ -9,6 +9,10 @@
 #   typo in upstreams.yaml / security_rules.yaml -> must fail
 #   orphan upstreams.yaml (no config.yaml beside it) -> must fail
 #   relative SYNAPSE_BIN -> must still work
+#   ML keys (ml-keys, ml-keys-typo, ml-inner-typo) -> depends on the build,
+#     which this script detects: a default build skips ml-keys, fails
+#     ml-keys-typo and fails ml-keys under SYNAPSE_REQUIRE_ML=1; a classifier
+#     build passes ml-keys and fails ml-inner-typo.
 # Needs the same SYNAPSE_BIN as check.sh.
 set -u
 
@@ -54,6 +58,24 @@ if [ -n "$abs_bin" ]; then
     bash -c 'cd "$(dirname "$1")" && SYNAPSE_BIN=./$(basename "$1") "$2" "$3"' _ "$abs_bin" "$check" "$fx/valid"
 else
   echo "FAIL: relative SYNAPSE_BIN: no binary to test with"; fails=$((fails + 1))
+fi
+
+# Which build is this? A default build prints the classifier-only warning for ml-keys.
+probe=$(cd "$fx/ml-keys" && "${SYNAPSE_BIN:-synapse}" --check-config --config config.yaml 2>&1)
+if printf '%s\n' "$probe" | grep -q 'Config options not supported by this build:'; then
+  echo "build: default (no classifier feature)"
+  expect pass "ML keys are skipped" "skip .*ML keys need a classifier build" "$check" "$fx/ml-keys"
+  expect pass "skip is counted in the summary" "1 skipped" "$check" "$fx/ml-keys"
+  expect fail "ML keys plus a typo fail" "network.ifce" "$check" "$fx/ml-keys-typo"
+  expect fail "ML keys fail under SYNAPSE_REQUIRE_ML=1" "Config options not supported" \
+    env SYNAPSE_REQUIRE_ML=1 "$check" "$fx/ml-keys"
+  expect pass "typo inside ml: is invisible (documented limit)" "skip " "$check" "$fx/ml-inner-typo"
+else
+  echo "build: classifier"
+  expect pass "ML keys pass" "ok   " "$check" "$fx/ml-keys"
+  expect pass "ML keys pass under SYNAPSE_REQUIRE_ML=1" "ok   " env SYNAPSE_REQUIRE_ML=1 "$check" "$fx/ml-keys"
+  expect fail "ML keys plus a typo fail" "network.ifce" "$check" "$fx/ml-keys-typo"
+  expect fail "typo inside ml: fails" "enabeld" "$check" "$fx/ml-inner-typo"
 fi
 
 if [ "$fails" -ne 0 ]; then

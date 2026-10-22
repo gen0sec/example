@@ -7,6 +7,9 @@
 # Environment:
 #   SYNAPSE_BIN  the synapse binary (default: `synapse` on PATH). It must
 #                support --check-config.
+#   SYNAPSE_REQUIRE_ML  set to 1 to fail a set that a build without the
+#                classifier feature had to skip (see below). Use it with a
+#                classifier build, where no set should be skipped.
 #
 # What a config set is: a directory that holds a `config.yaml`. Beside it,
 # an `upstreams.yaml` and a `security_rules.yaml` are part of the same set when
@@ -23,6 +26,11 @@
 # One warning is ignored: "security rules file not found", which the binary
 # prints for a set that has no security_rules.yaml, because the binary looks
 # for that file whether or not a set has one.
+# One more is a skip, not a failure: a build without the classifier feature
+# prints "Config options not supported by this build: ml ..." for the `ml:`
+# keys. A set whose only warning is that line prints `skip` and is counted as
+# skipped; any other warning in the same set still fails it. The build cannot
+# check inside `ml:` then, so a typo there shows only on a classifier build.
 set -u
 
 bin=${SYNAPSE_BIN:-synapse}
@@ -79,6 +87,7 @@ if [ "${#sets[@]}" -eq 0 ]; then
 fi
 
 failed=$orphans
+skipped=0
 for dir in "${sets[@]}"; do
   args=(--check-config --config config.yaml)
   [ -f "$dir/upstreams.yaml" ] && args+=(--upstream-conf upstreams.yaml)
@@ -94,9 +103,16 @@ for dir in "${sets[@]}"; do
   # Warnings that fail the check (all but the absent-rules-file notice).
   warnings=$(printf '%s\n' "$out" | awk -v has_rules="$has_rules" '
     /^warning:/ { if (!has_rules && /security rules file not found/) next; print }')
+  # Of those, the classifier-only line is a skip when nothing else is left.
+  other=$(printf '%s\n' "$warnings" | grep -v 'Config options not supported by this build:' || true)
+  ml_skip=0
+  if [ -n "$warnings" ] && [ -z "$other" ]; then ml_skip=1; fi
 
   rel=${dir#"$root"/}
-  if [ "$rc" -ne 0 ] || [ -n "$warnings" ]; then
+  if [ "$rc" -eq 0 ] && [ "$ml_skip" -eq 1 ] && [ "${SYNAPSE_REQUIRE_ML:-}" != 1 ]; then
+    echo "skip $rel (ML keys need a classifier build)"
+    skipped=$((skipped + 1))
+  elif [ "$rc" -ne 0 ] || [ -n "$warnings" ]; then
     echo "FAIL $rel"
     printf '%s\n' "$out" | sed 's/^/    /'
     failed=$((failed + 1))
@@ -109,4 +125,4 @@ if [ "$failed" -ne 0 ]; then
   echo "$failed problem(s): $orphans orphan file(s), $((failed - orphans)) of ${#sets[@]} config set(s) failed" >&2
   exit 1
 fi
-echo "${#sets[@]} config set(s) passed"
+echo "${#sets[@]} config set(s) passed, $skipped skipped"

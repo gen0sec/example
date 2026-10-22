@@ -1,0 +1,6 @@
+# Control fixture: valid keys under `ml:` that only a build with the
+# classifier feature knows. A default build must skip this set, not fail it.
+mode: agent
+ml:
+  traffic_classifier:
+    enabled: true
