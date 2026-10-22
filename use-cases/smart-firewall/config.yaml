@@ -1,0 +1,56 @@
+# smart-firewall: Synapse as an XDP firewall with the amygdala smart firewall
+# on top. Amygdala blocks by TLS/TCP fingerprint and by source address from
+# `smart_firewall_rules`; the IDS bans the source of a matching drop, reject
+# or block rule. No API key.
+mode: agent
+
+firewall:
+  # Master switch. Default: true.
+  enabled: true
+  # Force the XDP backend. Default: auto (XDP, then nftables, then iptables,
+  # then none). With `xdp` there is no fallback: if XDP cannot be loaded, no
+  # kernel firewall is installed.
+  mode: xdp
+  amygdala:
+    # Default: false. Fingerprint rules are enforced only while it runs.
+    enabled: true
+    # Default: auto (xdp on Linux). `afxdp` needs a dedicated interface and
+    # is not used here.
+    backend: auto
+
+# Amygdala decides on fingerprints, so capture must be on. Default: true.
+capture:
+  enabled: true
+  # Interface to capture on. Default: unset (auto-detected). Change it to your
+  # uplink.
+  interface: eth0
+
+ids:
+  enabled: true
+  # Default: xdp.
+  capture_mode: xdp
+  rule_paths:
+    - "/etc/synapse/rules/*.rules"
+  # Ban the source of a flow that matches a drop, reject or block rule.
+  # Default: false.
+  enforce_block: true
+  # Floor, in seconds, of the adaptive smart-firewall ban. Repeat offenders
+  # escalate from it. Default: 60; values below 60 are raised to 60.
+  ban_base_secs: 60
+  # Your own networks. Sources inside them are never banned. Replace with
+  # yours; documentation range shown.
+  address_vars:
+    HOME_NET: "[192.0.2.0/24]"
+  # Turn off pulling managed rules: this example is local-only.
+  managed_rules_path: ""
+
+logging:
+  # Default: info.
+  level: info
+  # Default: false (console only).
+  file_logging_enabled: true
+  # Default: /var/log/synapse
+  log_directory: "/var/log/synapse"
+  # Security-event log, {log_directory}/events.log by default. Default
+  # format: text.
+  events_log_format: json

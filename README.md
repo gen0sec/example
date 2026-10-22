@@ -39,6 +39,9 @@ is at [docs.gen0sec.com](https://docs.gen0sec.com).
 - [Platform managed](./use-cases/platform-managed/): agent mode with a Gen0Sec
   API key; the platform delivers the rules, the threat and GeoIP databases,
   managed IDS rules and fleet bans, and there is no local rules file.
+- [Smart firewall](./use-cases/smart-firewall/): agent mode with a forced XDP
+  firewall and amygdala, which blocks by fingerprint and source address from a
+  local file, plus IDS blocking, with no API key.
 
 ### Being updated
 
