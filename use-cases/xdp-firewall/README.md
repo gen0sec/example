@@ -1,7 +1,7 @@
 # xdp-firewall
 
 Synapse as a kernel firewall driven by a local rules file. The agent attaches
-an XDP program to the network interface and enforces an allow and block list
+an XDP program to the physical network interfaces and enforces an allow and block list
 and 5-tuple rules before a packet reaches the socket layer. It has no IDS, no
 fingerprint capture and no proxy.
 
@@ -57,7 +57,7 @@ Check the files without root first: `synapse --check-config -c config.yaml
 ## See it working
 
 Look for the line `Using XDP/BPF firewall backend (forced)` in the output,
-then confirm the program is attached to your interface:
+then confirm the program is attached to your uplink (`eth0` here is an example):
 
 ```bash
 ip link show eth0 | grep xdp
@@ -71,7 +71,10 @@ lines.
 - XDP attaches to the interfaces Synapse selects. Automatic selection skips
   virtual interfaces and bridge masters (a bridge's member ports are used).
   `firewall.attach_veth` matters only for a `veth` you list explicitly in
-  `network.interfaces`. Run `ip link` to see which one carries the program.
+  `network.ifaces`. To choose the interfaces yourself, set `network.iface`
+  or `network.ifaces`, or `network.interfaces` for a per-interface map; unset,
+  every physical interface that is up gets the program. Run `ip link` to see
+  which carry it.
 - `max_ip_filter_entries_v4` and `_v6` are the capacity of the kernel IP
   filter. When one fills, new blocks are decided but never reach the kernel.
   A larger value takes effect only after `synapse --force-stop` or a reboot,

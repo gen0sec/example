@@ -14,9 +14,15 @@ capture:
   # Default: auto. Resolves to XDP when BPF programs are loaded, otherwise
   # to AF_PACKET with recvfrom(). With firewall.mode none it is AF_PACKET.
   mode: auto
-  # Interface to capture on. Default: unset (auto-detected). Change it to your
-  # uplink.
-  interface: eth0
+  # Used only by the AF_PACKET capture. XDP and the eBPF collectors attach to
+  # the interfaces of `network:` below. Default: unset (auto-detected).
+  # interface: eth0
+
+# The interfaces the capture runs on. Default: auto, every physical interface
+# that is up. To watch one, set `iface` and `capture.interface` to your uplink.
+# `network.ifaces` takes a list, and `network.interfaces` a per-interface map.
+# network:
+#   iface: eth0
 
 logging:
   # Default: info.

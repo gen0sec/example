@@ -24,9 +24,13 @@ nothing: there is no kernel firewall, no IDS and no rules file.
 
 | File | What it does |
 |---|---|
-| [`config.yaml`](./config.yaml) | Agent mode, no firewall, capture on `eth0` with `mode: auto`, file logging to `/var/log/synapse` with the eventbridge and events logs |
+| [`config.yaml`](./config.yaml) | Agent mode, no firewall, capture with `mode: auto` on the auto-detected interfaces, file logging to `/var/log/synapse` with the eventbridge and events logs |
 
-Set `capture.interface` to your uplink if it is not `eth0`.
+Capture runs on the interfaces from `network.iface`, `network.ifaces` or
+`network.interfaces`. Unset, or `auto`, it uses every physical interface that
+is up. `capture.interface` is read only by the AF_PACKET capture. To watch one
+interface, set both `network.iface` and `capture.interface` to your uplink; the
+config has a commented example.
 
 ## Run as a package
 
