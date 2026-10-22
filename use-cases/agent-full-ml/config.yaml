@@ -1,0 +1,129 @@
+# agent-full-ml: Synapse agent with everything on and ML models.
+# An XDP firewall, the smart firewall (amygdala), packet capture and
+# fingerprinting, an XDP IDS that bans, managed IDS rules, and four ML models
+# that download themselves, all with a Gen0Sec API key. Needs the `-ml`
+# package (the classifier build).
+mode: agent
+
+# The config cache cached_config.json is written here. The code default is /,
+# which would put it at /cached_config.json, shared across the host. This is
+# not the process working directory: the model and rules paths below are
+# absolute for that reason.
+daemon:
+  working_directory: "/var/lib/synapse"
+
+platform:
+  # Replace with your Gen0Sec API key, or set the API_KEY environment variable.
+  # Never commit a real key to a file like this one. The platform delivers the
+  # security rules, the managed IDS rules and the models. A security_rules.yaml
+  # next to this file would not be read: with a key the rules come from the
+  # platform.
+  api_key: "YOUR_API_KEY"
+
+# Where the XDP firewall, the eBPF collectors and the XDP IDS attach. Default
+# network.iface: auto, which picks every physical interface that is up (it
+# skips veth, bridges and tunnels) for XDP and the XDP IDS. The eBPF collectors
+# (JA4TS, JA4L, JA4S, JA4SSH) attach to ONE interface: the first physical one.
+# To choose, set it here AND capture.interface below to the same uplink.
+# A veth is attached only when listed explicitly.
+# network:
+#   iface: eth0
+
+firewall:
+  # Master switch. Default: true.
+  enabled: true
+  # Default: auto: XDP, then nftables, then iptables, then none. Unlike a
+  # forced `xdp`, auto also sets up netfilter for the access rules when XDP
+  # cannot load.
+  mode: auto
+  # Smart firewall. Default: disabled. It needs a build with the amygdala
+  # feature, which is on in the packages, and the firewall to be enabled.
+  amygdala:
+    enabled: true
+    # Default: auto, which is xdp on Linux. Not afxdp: that backend needs a
+    # dedicated interface.
+    backend: auto
+    # Unset: the first XDP interface. Set it to your uplink to be sure.
+    # The amygdala bridge runs only while logging.eventbridge_log.enabled is
+    # true: turning that log off silently stops it.
+    # iface: eth0
+
+capture:
+  # Default: true. Attaches the eBPF collectors whatever firewall.mode is.
+  enabled: true
+  # Default: auto: XDP when it can load, otherwise AF_PACKET.
+  mode: auto
+  # Read only by the AF_PACKET paths (the capture fallback and the AF_PACKET
+  # IDS fallback). Unset means every interface, including lo, bridges and veth.
+  # It does not choose where XDP attaches: network.iface does. Set both to the
+  # same uplink.
+  interface: eth0
+
+ids:
+  # Default: false.
+  enabled: true
+  # Default: xdp. Falls back to AF_PACKET when no XDP program is loaded.
+  capture_mode: xdp
+  # Local rules, loaded and reloaded on change. The AF_PACKET fallback refuses
+  # an empty list, so keep this path even though managed rules are on.
+  rule_paths:
+    - "/etc/synapse/rules/*.rules"
+  # Ban the source of a flow that matches a block, drop or reject rule, for
+  # 300 s. Alert rules never ban, and the demo rule is an alert rule. Behind
+  # NAT one source is many users: tune your rules before relying on this.
+  # Default: false.
+  enforce_block: true
+  # Managed IDS rule bundles, written by the agent when the platform selects
+  # them for your account. The XDP IDS loads them and rebuilds on change. Set
+  # "" to turn pulling off. Default: <working directory>/managed.rules.
+  managed_rules_path: "/var/lib/synapse/managed.rules"
+  # Poll cadence in seconds. Minimum 60: smaller values are raised to 60.
+  # Default: 3600.
+  managed_rules_refresh_secs: 3600
+
+# The ML models. The deprecated top-level keys (classifier, penalty,
+# traffic_classifier, flow_classifier, jepa_embedder) are not used here.
+# With `enabled: true` and an API key each model downloads itself from the
+# platform at {platform.base_url}/models/<name>/manifest and refreshes every
+# 3600 s (refresh_secs). The models are saved to model_path.
+ml:
+  traffic_classifier:
+    enabled: true
+    model_path: "/var/lib/synapse/traffic.onnx"
+  flow_classifier:
+    enabled: true
+    model_path: "/var/lib/synapse/flow.onnx"
+  penalty:
+    enabled: true
+    model_path: "/var/lib/synapse/penalty.onnx"
+  jepa_embedder:
+    enabled: true
+    # A tar.gz bundle: the download is unpacked next to it.
+    model_path: "/var/lib/synapse/jepa-embedder.tar.gz"
+    vocab_path: "/var/lib/synapse/vocab.json"
+  # Left out on purpose: this model has no download. It needs a local .onnx
+  # file that you supply, and none is published.
+  # fingerprint_classifier:
+  #   enabled: true
+  #   model_path: "/var/lib/synapse/fingerprint.onnx"
+
+logging:
+  # Default: info.
+  level: info
+  # Default: false (console only).
+  file_logging_enabled: true
+  # Default: /var/log/synapse
+  log_directory: "/var/log/synapse"
+  # Security-event log (blocks). Default format: text.
+  events_log_format: json
+  # Suricata-compatible EVE JSON. Default: disabled.
+  eve_log:
+    enabled: true
+    file: "/var/log/synapse/eve.json"
+    event_types: [alert, stats]
+  # One JSON line per fingerprint event. Default: enabled. The fingerprint
+  # writer runs only while this or the CEF fingerprints stream is on. Keep it
+  # on: the amygdala bridge runs only while this is enabled.
+  eventbridge_log:
+    enabled: true
+    file: "/var/log/synapse/eventbridge.log"

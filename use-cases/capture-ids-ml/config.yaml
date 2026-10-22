@@ -1,0 +1,109 @@
+# capture-ids-ml: Synapse with packet capture, an alert-only IDS and ML models.
+# Packets are captured and fingerprinted, the XDP IDS matches local
+# Suricata-format rules plus the managed rules, and four ML models download
+# themselves with a Gen0Sec API key. The IDS only alerts and bans nothing. With
+# a key, the platform's access rules ARE enforced by the firewall. There is no
+# smart firewall. Needs the `-ml` package (the classifier build).
+mode: agent
+
+# The config cache cached_config.json is written here. The code default is /,
+# which would put it at /cached_config.json, shared across the host. This is
+# not the process working directory: the model and rules paths below are
+# absolute for that reason.
+daemon:
+  working_directory: "/var/lib/synapse"
+
+platform:
+  # Replace with your Gen0Sec API key, or set the API_KEY environment variable.
+  # Never commit a real key to a file like this one. The model downloads need
+  # it: without a key the models are not fetched.
+  api_key: "YOUR_API_KEY"
+
+# Where the XDP program, the eBPF collectors and the XDP IDS attach. Default
+# network.iface: auto, which picks every physical interface that is up (it
+# skips veth, bridges and tunnels) for XDP and the XDP IDS. The eBPF collectors
+# (JA4TS, JA4L, JA4S, JA4SSH) attach to ONE interface: the first physical one.
+# To choose, set it here AND capture.interface below to the same uplink.
+# network:
+#   iface: eth0
+
+# The XDP IDS runs on the program the firewall loads, so the firewall mode
+# must not be none. This set adds no access rules or firewall rules of its
+# own, but the platform delivers its access rules, and the IDS does not ban
+# (enforce_block: false). Default: auto.
+firewall:
+  mode: auto
+
+capture:
+  # Default: true.
+  enabled: true
+  # Default: auto: XDP when it can load, otherwise AF_PACKET.
+  mode: auto
+  # Read only by the AF_PACKET paths (the capture fallback and the AF_PACKET
+  # IDS fallback). Unset means every interface, including lo, bridges and veth.
+  # It does not choose where XDP attaches: network.iface does. Set both to the
+  # same uplink.
+  interface: eth0
+
+ids:
+  # Default: false.
+  enabled: true
+  # Default: xdp. Falls back to AF_PACKET when no XDP program is loaded.
+  capture_mode: xdp
+  # Local rules, loaded and reloaded on change. The AF_PACKET fallback refuses
+  # an empty list, so keep this path even when you rely on managed rules.
+  rule_paths:
+    - "/etc/synapse/rules/*.rules"
+  # Alert only: do not ban the source of a matching flow. Default: false.
+  enforce_block: false
+  # Managed IDS rules from the platform load alongside the local rule above.
+  # With a key the worker runs whenever the path is set; the code default is a
+  # path relative to the process directory, so set an absolute one. Set "" to
+  # turn it off.
+  managed_rules_path: "/var/lib/synapse/managed.rules"
+
+# The ML models. The deprecated top-level keys (classifier, penalty,
+# traffic_classifier, flow_classifier, jepa_embedder) are not used here.
+# With `enabled: true` and an API key each model downloads itself from the
+# platform at {platform.base_url}/models/<name>/manifest and refreshes every
+# 3600 s (refresh_secs). The models are saved to model_path.
+ml:
+  traffic_classifier:
+    enabled: true
+    model_path: "/var/lib/synapse/traffic.onnx"
+  flow_classifier:
+    enabled: true
+    model_path: "/var/lib/synapse/flow.onnx"
+  penalty:
+    enabled: true
+    model_path: "/var/lib/synapse/penalty.onnx"
+  jepa_embedder:
+    enabled: true
+    # A tar.gz bundle: the download is unpacked next to it.
+    model_path: "/var/lib/synapse/jepa-embedder.tar.gz"
+    vocab_path: "/var/lib/synapse/vocab.json"
+  # Left out on purpose: this model has no download. It needs a local .onnx
+  # file that you supply, and none is published.
+  # fingerprint_classifier:
+  #   enabled: true
+  #   model_path: "/var/lib/synapse/fingerprint.onnx"
+
+logging:
+  # Default: info.
+  level: info
+  # Default: false (console only).
+  file_logging_enabled: true
+  # Default: /var/log/synapse
+  log_directory: "/var/log/synapse"
+  # Security-event log. Default format: text.
+  events_log_format: json
+  # Suricata-compatible EVE JSON. Default: disabled.
+  eve_log:
+    enabled: true
+    file: "/var/log/synapse/eve.json"
+    event_types: [alert, stats]
+  # One JSON line per fingerprint event. Default: enabled. The fingerprint
+  # writer runs only while this or the CEF fingerprints stream is on.
+  eventbridge_log:
+    enabled: true
+    file: "/var/log/synapse/eventbridge.log"
