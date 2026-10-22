@@ -1,0 +1,6 @@
+# Control fixture: ML keys plus an invalid `mode`. A default build prints the
+# classifier-only warning and still exits non-zero. It must fail on every build.
+mode: bogus
+ml:
+  traffic_classifier:
+    enabled: true

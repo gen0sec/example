@@ -30,7 +30,10 @@
 # prints "Config options not supported by this build: ml ..." for the `ml:`
 # keys. A set whose only warning is that line prints `skip` and is counted as
 # skipped; any other warning in the same set still fails it. The build cannot
-# check inside `ml:` then, so a typo there shows only on a classifier build.
+# check any of the ML keys then (`ml:` and the deprecated top-level
+# `classifier`, `penalty`, `traffic_classifier`, `flow_classifier`,
+# `jepa_embedder` and `jepa`): a typo or a wrong value type in them shows only
+# on a classifier build.
 set -u
 
 bin=${SYNAPSE_BIN:-synapse}
@@ -125,4 +128,4 @@ if [ "$failed" -ne 0 ]; then
   echo "$failed problem(s): $orphans orphan file(s), $((failed - orphans)) of ${#sets[@]} config set(s) failed" >&2
   exit 1
 fi
-echo "${#sets[@]} config set(s) passed, $skipped skipped"
+echo "$((${#sets[@]} - skipped)) config set(s) passed, $skipped skipped"

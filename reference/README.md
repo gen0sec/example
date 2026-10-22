@@ -40,4 +40,7 @@ that they are not supported, and `make test` then prints `skip <set> (ML keys
 need a classifier build)` for a set with no other warning, and counts it in the
 summary. Any other warning in that set still fails it. Set
 `SYNAPSE_REQUIRE_ML=1` to make a skip a failure, as for a classifier build. A
-typo inside `ml:` shows only on a classifier build.
+default build checks none of the ML keys (`ml:` and the deprecated top-level
+`classifier`, `penalty`, `traffic_classifier`, `flow_classifier`,
+`jepa_embedder` and `jepa`): a typo or a wrong value type in them shows only on
+a classifier build.
