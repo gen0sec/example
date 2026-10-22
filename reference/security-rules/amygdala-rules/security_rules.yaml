@@ -9,6 +9,8 @@
 #
 # Expression rules, {id, expression, action}, work only under `rules:`. An
 # {id, expression} entry inside `block` or `allow` is never applied.
+# `in` takes a set in braces; `--check-config` does not compile these
+# expressions, and a rule that does not compile is skipped with a warning at start.
 access_rules:
   id: "example-amygdala"
   name: "Example"
@@ -26,8 +28,8 @@ smart_firewall_rules:
       ttl_seconds: 3600
   rules:
     - id: "block-botnet-range"
-      expression: 'ip.src in 198.51.100.0/24'
+      expression: 'ip.src in {198.51.100.0/24}'
       action: "block"
     - id: "allow-office"
-      expression: 'ip.src in 10.1.0.0/16'
+      expression: 'ip.src in {10.1.0.0/16}'
       action: "allow"
