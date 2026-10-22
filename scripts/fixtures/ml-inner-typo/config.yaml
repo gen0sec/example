@@ -1,0 +1,6 @@
+# Control fixture: `enabeld` is misspelled inside `ml:`. A classifier build
+# must fail on it. A default build cannot see inside `ml:` and skips the set.
+mode: agent
+ml:
+  traffic_classifier:
+    enabeld: true

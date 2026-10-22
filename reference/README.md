@@ -34,3 +34,13 @@ error, on a warning (an unknown key is a warning) and on a missing binary. A
 config set is a directory with a `config.yaml`, plus an `upstreams.yaml` and a
 `security_rules.yaml` beside it when present. See
 [`scripts/check.sh`](../scripts/check.sh).
+
+A build without the `classifier` feature cannot check the `ml:` keys. It warns
+that they are not supported, and `make test` then prints `skip <set> (ML keys
+need a classifier build)` for a set with no other warning, and counts it in the
+summary. Any other warning in that set still fails it. Set
+`SYNAPSE_REQUIRE_ML=1` to make a skip a failure, as for a classifier build. A
+default build checks none of the ML keys (`ml:` and the deprecated top-level
+`classifier`, `penalty`, `traffic_classifier`, `flow_classifier`,
+`jepa_embedder` and `jepa`): a typo or a wrong value type in them shows only on
+a classifier build.

@@ -1,0 +1,7 @@
+# Control fixture: ML keys plus a misspelled `ifce`. It must fail on every build.
+mode: agent
+network:
+  ifce: lo
+ml:
+  traffic_classifier:
+    enabled: true

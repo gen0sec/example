@@ -14,7 +14,7 @@ install: ## Install the lint tooling (yamllint, pinned in requirements-dev.txt)
 lint: ## Lint every YAML file
 	yamllint .
 
-test: test-check ## Run the controls, then check every config set with `synapse --check-config` (set SYNAPSE_BIN)
+test: test-check ## Run the controls, then check every config set with `synapse --check-config` (set SYNAPSE_BIN; SYNAPSE_REQUIRE_ML=1 fails sets skipped for lack of the classifier feature)
 	scripts/check.sh
 
 test-check: ## Run the controls that prove scripts/check.sh can fail
