@@ -1,7 +1,7 @@
 # passive-monitoring
 
 Synapse as a passive network observer. The agent captures packets on one
-interface and writes the TCP-level fingerprints it computes to a log. It blocks
+interface and writes the fingerprints it computes to a log. It blocks
 nothing: there is no kernel firewall, no IDS and no rules file.
 
 ## What you need
@@ -12,9 +12,12 @@ nothing: there is no kernel firewall, no IDS and no rules file.
   example does not repeat it.
 - Linux. With `firewall.mode: none` the capture backend `auto` resolves to
   AF_PACKET, so any current kernel works.
-- Privileges to open a raw packet socket: run as root, or give the process
-  `CAP_NET_RAW`. Capturing with XDP instead needs `CAP_BPF` (and
-  `CAP_NET_ADMIN` to attach it).
+- Privileges: run as root, or give the process `CAP_NET_RAW` (the AF_PACKET
+  socket), `CAP_BPF` and `CAP_NET_ADMIN` (the eBPF collectors that
+  `capture.enabled: true` attaches to the interface, whatever `firewall.mode`
+  is), and `CAP_SYS_ADMIN` or `CAP_PERFMON` (the SSL uprobes). The packaged
+  service unit grants `CAP_NET_ADMIN`, `CAP_NET_RAW`, `CAP_SYS_ADMIN`,
+  `CAP_BPF` and `CAP_NET_BIND_SERVICE`.
 - No Gen0Sec API key.
 
 ## Files
@@ -39,10 +42,11 @@ service, see the installation guide.
 ## What it shows
 
 In agent mode Synapse fingerprints the TCP and latency layer of each
-connection it sees: JA4T (TCP SYN), JA4TS (TCP SYN-ACK), JA4L and JA4LS
-(latency). The application-level fingerprints (JA4, JA4H, JA4S, JA4X) need TLS
-termination, which only proxy mode does, so they are not produced here. The
-mode comparison is in the [documentation](https://docs.gen0sec.com).
+connection it sees. On the test replay the log held JA4T (TCP SYN), JA4TS
+(TCP SYN-ACK), JA4 (TLS ClientHello), JA4S (TLS ServerHello), JA4X
+(certificate) and the SNI. JA4H (HTTP headers) was not seen. The Synapse
+mode comparison table lists the application-level fingerprints as proxy-only;
+it is out of date for agent mode.
 
 One JSON line per fingerprint event is written to
 `/var/log/synapse/eventbridge.log`:

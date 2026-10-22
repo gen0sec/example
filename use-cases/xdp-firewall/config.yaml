@@ -6,9 +6,10 @@ mode: agent
 firewall:
   # Master switch. Default: true.
   enabled: true
-  # Force the XDP backend. Default: auto (XDP, then nftables, then iptables,
-  # then none). With `xdp` there is no fallback: if XDP cannot be loaded, no
-  # kernel firewall is installed. Set `auto` to fall back instead.
+  # Prefer the XDP backend. Default: auto (XDP, then nftables, then iptables,
+  # then none). If XDP cannot be loaded, `xdp` logs "XDP mode forced but BPF not
+  # available": the firewall_rules fall through to nftables or iptables, but
+  # the access_rules are not enforced. Set `auto` to fall back for both.
   mode: xdp
   # Capacity of the XDP IP-filter tries, per address family. When one fills,
   # new blocks are decided but never reach the kernel. Pinned maps keep their
@@ -31,3 +32,6 @@ logging:
   # Security-event log, {log_directory}/events.log by default. Default
   # format: text.
   events_log_format: json
+  # Firewall only: no fingerprint log. Default: enabled.
+  eventbridge_log:
+    enabled: false

@@ -1,5 +1,5 @@
 # passive-monitoring: Synapse as a passive network observer.
-# Packets are captured and fingerprinted (JA4T and the other TCP-level
+# Packets are captured and fingerprinted (TCP, TLS and certificate
 # fingerprints). Nothing is blocked: there is no kernel firewall and no IDS.
 mode: agent
 

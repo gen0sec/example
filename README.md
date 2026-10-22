@@ -29,8 +29,8 @@ is at [docs.gen0sec.com](https://docs.gen0sec.com).
   firewall that enforces access rules and 5-tuple rules from a local file, with
   no API key.
 - [Passive monitoring](./use-cases/passive-monitoring/): agent mode with
-  packet capture and no firewall; TCP-level fingerprints are written to a log
-  and nothing is blocked.
+  packet capture and no firewall; fingerprints are written to a log and nothing
+  is blocked.
 
 ### Being updated
 

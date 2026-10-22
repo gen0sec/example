@@ -17,10 +17,16 @@ fingerprint capture and no proxy.
   `CAP_BPF` and `CAP_NET_ADMIN`. Without them the XDP backend cannot load.
 - No Gen0Sec API key.
 
-`firewall.mode: xdp` forces the XDP backend and has no fallback. If XDP cannot
-be loaded, Synapse logs `XDP mode forced but BPF not available` and no kernel
-firewall is installed. To fall back to nftables, then iptables, set
-`firewall.mode: auto` instead.
+`firewall.mode: xdp` prefers the XDP backend. If XDP cannot be loaded, Synapse
+logs `XDP mode forced but BPF not available`, and then:
+
+- the `firewall_rules` (5-tuple rules) fall through to nftables or iptables,
+  whichever accepts them;
+- the `access_rules` allow and block lists are not enforced, because no
+  netfilter backend is set up for them in this mode.
+
+With `firewall.mode: auto`, Synapse falls back to nftables, then iptables, for
+both.
 
 ## Files
 
@@ -62,14 +68,16 @@ lines.
 
 ## Limits
 
-- XDP attaches to the interfaces Synapse selects (physical and bridge devices,
-  not `veth*` unless `firewall.attach_veth` is set). Run `ip link` to see
-  which one carries the program.
+- XDP attaches to the interfaces Synapse selects. Automatic selection skips
+  virtual interfaces and bridge masters (a bridge's member ports are used).
+  `firewall.attach_veth` matters only for a `veth` you list explicitly in
+  `network.interfaces`. Run `ip link` to see which one carries the program.
 - `max_ip_filter_entries_v4` and `_v6` are the capacity of the kernel IP
   filter. When one fills, new blocks are decided but never reach the kernel.
   A larger value takes effect only after `synapse --force-stop` or a reboot,
   because the maps stay pinned.
-- Capture is off, so this set writes no fingerprint events. Fingerprints are
-  the [passive-monitoring](../passive-monitoring/) set.
+- Capture and the eventbridge (fingerprint) log are off, because this is a
+  firewall-only set. Fingerprints are the
+  [passive-monitoring](../passive-monitoring/) set.
 - `waf_rules` is empty: the WAF belongs to proxy mode (see
   [reverse-proxy-waf](../reverse-proxy-waf/)).
