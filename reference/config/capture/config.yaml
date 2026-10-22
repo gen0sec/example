@@ -5,11 +5,14 @@ capture:
   # Default: true.
   enabled: true
 
-  # Backend. Default: auto (XDP, then AF_PACKET, then PF_RING).
-  #   xdp             eBPF/XDP map polling
-  #   af_packet       AF_PACKET TPACKET_V3 mmap ring
+  # Backend. Default: auto (XDP, then AF_PACKET on Linux; NDIS on Windows).
+  #   auto            pick the first backend that works
+  #   xdp             eBPF/XDP map polling (alias: kernel)
+  #   af_packet       AF_PACKET TPACKET_V3 mmap ring (aliases: userspace, afpacket)
   #   af_packet_recv  AF_PACKET with plain recvfrom(); works on any kernel
-  #   pfring          PF_RING (needs pf_ring.ko and a pfring-capture build)
+  #   af_xdp          AF_XDP socket capture (Windows)
+  #   ndis            NDIS Packet Filter driver (Windows)
+  # The PF_RING backend was removed. `pfring` is read as `auto`, with a warning.
   mode: auto
 
   # Interface to capture on. Default: unset (auto-detected: all interfaces for
@@ -19,9 +22,13 @@ capture:
   # Bytes captured per packet. Default: 65535.
   snaplen: 65535
 
-  # BPF filter (tcpdump syntax). Default: "tcp". Not applied in af_packet_recv
-  # mode, which filters in user space.
-  filter: "tcp"
+  # BPF filter (tcpdump syntax). Not applied in af_packet_recv mode, which
+  # filters in user space. A filter you set is used as is. The default keeps
+  # TCP, also behind up to two VLAN tags and IPv6 extension headers. A bare
+  # "tcp" drops those frames, so set a filter only when you need to narrow it.
+  # Default: tcp or (ip6 and (ip6[6] = 0 or ip6[6] = 43 or ip6[6] = 51
+  #   or ip6[6] = 60)), repeated behind each of two optional VLAN tags.
+  # filter: "tcp"
 
   # Only used when mode: af_packet.
   af_packet:
@@ -29,11 +36,6 @@ capture:
     block_count: 4           # ring blocks; ring = block_size * block_count. Default: 4
     block_timeout_ms: 100    # flush an incomplete block after this. Default: 100
     promiscuous: true        # Default: true
-
-  # Only used when mode: pfring.
-  pfring:
-    zero_copy: true          # mmap'd ring, no kernel-to-user copy
-    # cluster_id: 1          # multi-queue load balancing. Default: unset
 
   # A fingerprint already forwarded within this window is not forwarded again.
   # Default: 600 (seconds).
