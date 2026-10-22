@@ -1,0 +1,40 @@
+# Rules for smart-firewall, loaded from this file because no Gen0Sec API key
+# is set. Addresses are documentation ranges: replace them with your own.
+#
+# `access_rules` and `waf_rules` are both required keys. Neither holds a rule
+# here: the WAF belongs to proxy mode.
+access_rules:
+  id: example-smart-firewall
+  name: Example smart firewall
+  description: Access rules are required by the file format; none are set here
+  allow: { ips: [], country: [], asn: [] }
+  block: { ips: [], country: [], asn: [] }
+
+waf_rules:
+  rules: []
+
+# Three kinds of rule, enforced in different places (see the README):
+#
+# - `block` entries of kind ja4t go to the XDP fingerprint stage. They last
+#   until this file changes; `ttl_seconds` does not lift them.
+# - `rules` holds expressions, {id, expression, action}. `action` defaults to
+#   block. The first match wins, in file order: list allow rules before block
+#   rules. An `in` test takes a braced set: `ip.src in {192.0.2.0/24}`. An
+#   expression that does not compile is skipped with a warning at start, and
+#   `--check-config` does not catch it.
+# - `block` entries of the other kinds (ja4, ja4s, ja4ts, ja4l, ja4ls, ja4h,
+#   ja4x, ja4ssh) need firewall.amygdala.enabled. Such an entry may carry
+#   ttl_seconds, or expires_at (RFC 3339), but not both.
+smart_firewall_rules:
+  block:
+    # A placeholder that matches no real TCP stack. Replace it with the
+    # `ja4t` field of a fingerprint record in {log_directory}/eventbridge.log.
+    - kind: ja4t
+      value: "1_99_1_99"
+  rules:
+    - id: "allow-management"
+      expression: 'ip.src in {192.0.2.0/28}'
+      action: "allow"
+    - id: "block-example-range"
+      expression: 'ip.src in {198.51.100.0/24}'
+      action: "block"
