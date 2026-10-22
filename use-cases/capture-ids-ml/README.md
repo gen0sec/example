@@ -1,6 +1,6 @@
 # capture-ids-ml
 
-Synapse as a detection-only sensor with ML models: packet capture, an XDP IDS that alerts and never bans, and four ML models that download themselves. There is no smart firewall.
+Synapse with packet capture, an XDP IDS that alerts and never bans, and four ML models that download themselves. It is not passive: with an API key, the platform's access rules are enforced by the firewall. There is no smart firewall.
 
 ## What you need
 
@@ -26,10 +26,14 @@ Synapse as a detection-only sensor with ML models: packet capture, an XDP IDS th
 | [`rules/host-ids.rules`](./rules/host-ids.rules) | The demo IDS rule: it alerts on an ICMP echo containing `gen0sec-test`. It only alerts |
 
 Set `capture.interface` and `network.iface` to your uplink. They are
-separate keys: XDP, the XDP IDS and the eBPF collectors follow
-`network.iface` (unset: every physical interface that is up), and
-`capture.interface` is read only by the AF_PACKET fallbacks (unset: every
-interface). Uncomment `network.iface` and set both.
+separate keys. XDP and the XDP IDS follow `network.iface` (unset: every
+physical interface that is up). The eBPF collectors attach to one interface,
+the first physical one. `capture.interface` is read only by the AF_PACKET
+fallbacks (unset: every interface). Uncomment `network.iface` and set both.
+
+`daemon.working_directory` is `/var/lib/synapse`, so the config cache is
+`/var/lib/synapse/cached_config.json`. The code default is `/`, which is shared
+across the host.
 
 ## Run as a package
 
@@ -52,6 +56,11 @@ files are saved at their `model_path`. `fingerprint_classifier` is commented
 out: it has no download and needs a local `.onnx` file that you supply. This
 set makes no claim about what any model detects.
 
+On first start the penalty and traffic models log `Failed to initialize ...
+model file not found` until the startup sync installs them. If the platform is
+unreachable then, `startup sync failed` is logged and the next try waits
+`refresh_secs` (3600 s), unless a push from the platform arrives first.
+
 ## What it shows
 
 On a test replay (a pcap file, no root) with the platform turned off, the
@@ -69,6 +78,8 @@ shows that the file is valid for the `-ml` build and the process starts.
   live traffic.
 - A `security_rules.yaml` next to `config.yaml` is not read: with an API key
   the access and firewall rules come from the platform.
+- The platform's managed IDS rules are loaded alongside the local rule, from
+  `/var/lib/synapse/managed.rules`. Set `managed_rules_path: ""` to turn them off.
 - The IDS bans only for `block`, `drop` and `reject` rules. The demo rule
   is an alert rule.
-- Nothing is blocked by the IDS: `enforce_block: false`. There is no amygdala. Firewall `auto` still loads the XDP program (the IDS needs it), so access rules the platform delivers could be enforced by it. For a set that also blocks, see [agent-full-ml](../agent-full-ml/).
+- The IDS blocks nothing: `enforce_block: false`. There is no amygdala. Firewall `auto` still loads the XDP program (the IDS needs it), so access rules the platform delivers could be enforced by it. For a set that also blocks, see [agent-full-ml](../agent-full-ml/).

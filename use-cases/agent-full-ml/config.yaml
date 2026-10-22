@@ -5,6 +5,13 @@
 # package (the classifier build).
 mode: agent
 
+# The config cache cached_config.json is written here. The code default is /,
+# which would put it at /cached_config.json, shared across the host. This is
+# not the process working directory: the model and rules paths below are
+# absolute for that reason.
+daemon:
+  working_directory: "/var/lib/synapse"
+
 platform:
   # Replace with your Gen0Sec API key, or set the API_KEY environment variable.
   # Never commit a real key to a file like this one. The platform delivers the
@@ -15,9 +22,10 @@ platform:
 
 # Where the XDP firewall, the eBPF collectors and the XDP IDS attach. Default
 # network.iface: auto, which picks every physical interface that is up (it
-# skips veth, bridges and tunnels). To use one interface, set it here AND
-# capture.interface below to the same uplink. A veth is attached only when
-# listed explicitly.
+# skips veth, bridges and tunnels) for XDP and the XDP IDS. The eBPF collectors
+# (JA4TS, JA4L, JA4S, JA4SSH) attach to ONE interface: the first physical one.
+# To choose, set it here AND capture.interface below to the same uplink.
+# A veth is attached only when listed explicitly.
 # network:
 #   iface: eth0
 
@@ -36,6 +44,8 @@ firewall:
     # dedicated interface.
     backend: auto
     # Unset: the first XDP interface. Set it to your uplink to be sure.
+    # The amygdala bridge runs only while logging.eventbridge_log.enabled is
+    # true: turning that log off silently stops it.
     # iface: eth0
 
 capture:
@@ -67,7 +77,8 @@ ids:
   # them for your account. The XDP IDS loads them and rebuilds on change. Set
   # "" to turn pulling off. Default: <working directory>/managed.rules.
   managed_rules_path: "/var/lib/synapse/managed.rules"
-  # Poll cadence in seconds. 0 means push only. Default: 3600.
+  # Poll cadence in seconds. Minimum 60: smaller values are raised to 60.
+  # Default: 3600.
   managed_rules_refresh_secs: 3600
 
 # The ML models. The deprecated top-level keys (classifier, penalty,
@@ -111,7 +122,8 @@ logging:
     file: "/var/log/synapse/eve.json"
     event_types: [alert, stats]
   # One JSON line per fingerprint event. Default: enabled. The fingerprint
-  # writer runs only while this or the CEF fingerprints stream is on.
+  # writer runs only while this or the CEF fingerprints stream is on. Keep it
+  # on: the amygdala bridge runs only while this is enabled.
   eventbridge_log:
     enabled: true
     file: "/var/log/synapse/eventbridge.log"

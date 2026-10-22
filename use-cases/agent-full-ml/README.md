@@ -26,10 +26,14 @@ Synapse agent with everything on: an XDP firewall, the smart firewall (amygdala)
 | [`rules/host-ids.rules`](./rules/host-ids.rules) | The demo IDS rule: it alerts on an ICMP echo containing `gen0sec-test`. It only alerts |
 
 Set `capture.interface` and `network.iface` to your uplink. They are
-separate keys: XDP, the XDP IDS and the eBPF collectors follow
-`network.iface` (unset: every physical interface that is up), and
-`capture.interface` is read only by the AF_PACKET fallbacks (unset: every
-interface). Uncomment `network.iface` and set both.
+separate keys. XDP and the XDP IDS follow `network.iface` (unset: every
+physical interface that is up). The eBPF collectors attach to one interface,
+the first physical one. `capture.interface` is read only by the AF_PACKET
+fallbacks (unset: every interface). Uncomment `network.iface` and set both.
+
+`daemon.working_directory` is `/var/lib/synapse`, so the config cache is
+`/var/lib/synapse/cached_config.json`. The code default is `/`, which is shared
+across the host.
 
 ## Run as a package
 
@@ -52,6 +56,11 @@ files are saved at their `model_path`. `fingerprint_classifier` is commented
 out: it has no download and needs a local `.onnx` file that you supply. This
 set makes no claim about what any model detects.
 
+On first start the penalty and traffic models log `Failed to initialize ...
+model file not found` until the startup sync installs them. If the platform is
+unreachable then, `startup sync failed` is logged and the next try waits
+`refresh_secs` (3600 s), unless a push from the platform arrives first.
+
 ## What it shows
 
 On a test replay (a pcap file, no root) with the platform turned off, the
@@ -71,6 +80,7 @@ shows that the file is valid for the `-ml` build and the process starts.
   the access and firewall rules come from the platform.
 - The IDS bans only for `block`, `drop` and `reject` rules. The demo rule
   is an alert rule.
+- The amygdala bridge runs only while `logging.eventbridge_log.enabled` is on, so turning that log off silently stops it.
 - Bans last 300 s. Behind NAT one source is many users: tune your rules before relying on them.
 - The managed IDS rules are written to `/var/lib/synapse/managed.rules` when the platform selects them for your account. The local rule path stays, because the AF_PACKET fallback refuses an empty list.
 - For a detect-only variant, see [capture-ids-ml](../capture-ids-ml/).
