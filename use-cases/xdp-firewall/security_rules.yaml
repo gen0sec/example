@@ -1,0 +1,43 @@
+# Rules for xdp-firewall, loaded from this file because no Gen0Sec API key is
+# set. Addresses are documentation ranges: replace them with your own.
+#
+# `access_rules` and `waf_rules` are both required keys. The WAF belongs to
+# proxy mode, so `waf_rules` is empty here.
+access_rules:
+  id: example-xdp-firewall
+  name: Example XDP firewall
+  description: Static allow and block lists loaded from a local file
+  allow:
+    ips:
+      - "192.0.2.10"            # a management host (RFC 5737 TEST-NET-1)
+    country: []
+    asn: []
+  block:
+    ips:
+      - "198.51.100.0/24"       # a CIDR range (TEST-NET-2)
+      - "2001:db8::/32"         # IPv6 documentation range
+    country: []
+    asn: []
+
+waf_rules:
+  rules: []
+
+# 5-tuple rules. They are a top-level key of this file, not nested under
+# `firewall:` in config.yaml. Rulesets run in order and the first matching rule
+# wins; lower priority runs first, and a bare list runs after the prioritised
+# ones.
+firewall_rules:
+  rulesets:
+    block-telnet:
+      priority: 10
+      rules:
+        - dst_port: "23"
+          protocol: "tcp"
+          action: "block"
+    # Blocks traffic arriving from this address; expires by itself after an
+    # hour.
+    temp-block-scanner:
+      - src_ip: "203.0.113.10"
+        protocol: "any"
+        action: "block"
+        ttl_seconds: 3600

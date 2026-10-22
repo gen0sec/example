@@ -1,0 +1,42 @@
+# passive-monitoring: Synapse as a passive network observer.
+# Packets are captured and fingerprinted (TCP, TLS and certificate
+# fingerprints). Nothing is blocked: there is no kernel firewall and no IDS.
+mode: agent
+
+# No kernel firewall, so the agent attaches no XDP program for enforcement and
+# drops nothing. Default: auto.
+firewall:
+  mode: none
+
+capture:
+  # Default: true.
+  enabled: true
+  # Default: auto. Resolves to XDP when BPF programs are loaded, otherwise
+  # to AF_PACKET with recvfrom(). With firewall.mode none it is AF_PACKET.
+  mode: auto
+  # With firewall.mode none this set captures with AF_PACKET, and this key
+  # chooses the interface. Unset or "auto" listens on every interface,
+  # including lo and virtual ones. Set it to your uplink.
+  interface: eth0
+
+# The one interface the eBPF collectors (JA4TS, JA4L, JA4S, JA4SSH) attach to.
+# Default: unset, the first physical interface. Set it to the same uplink.
+# `network.ifaces` takes a list, and `network.interfaces` a per-interface map.
+# network:
+#   iface: eth0
+
+logging:
+  # Default: info.
+  level: info
+  # Default: false (console only).
+  file_logging_enabled: true
+  # Default: /var/log/synapse
+  log_directory: "/var/log/synapse"
+  # Security-event log. This set blocks nothing, so it holds little. Default
+  # file: {log_directory}/events.log; default format: text.
+  events_log_format: json
+  # One JSON line per fingerprint event. Default: enabled, in
+  # {log_directory}/eventbridge.log. Older name: fingerprint_log.
+  eventbridge_log:
+    enabled: true
+    file: "/var/log/synapse/eventbridge.log"

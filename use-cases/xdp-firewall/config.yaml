@@ -1,0 +1,37 @@
+# xdp-firewall: Synapse as a kernel firewall driven by a local rules file.
+# Access rules and 5-tuple firewall rules are enforced by XDP, before a packet
+# reaches the socket layer. No IDS, no fingerprint capture, no API key.
+mode: agent
+
+firewall:
+  # Master switch. Default: true.
+  enabled: true
+  # Prefer the XDP backend. Default: auto (XDP, then nftables, then iptables,
+  # then none). If XDP cannot be loaded, `xdp` logs "XDP mode forced but BPF not
+  # available": the firewall_rules fall through to nftables or iptables, but
+  # the access_rules are not enforced. Set `auto` to fall back for both.
+  mode: xdp
+  # Capacity of the XDP IP-filter tries, per address family. When one fills,
+  # new blocks are decided but never reach the kernel. Pinned maps keep their
+  # old size until `synapse --force-stop` or a reboot. Default: 50000 each.
+  max_ip_filter_entries_v4: 50000
+  max_ip_filter_entries_v6: 50000
+
+# This set enforces only. Packet capture for fingerprinting is off.
+capture:
+  # Default: true.
+  enabled: false
+
+logging:
+  # Default: info.
+  level: info
+  # Default: false (console only).
+  file_logging_enabled: true
+  # Default: /var/log/synapse
+  log_directory: "/var/log/synapse"
+  # Security-event log, {log_directory}/events.log by default. Default
+  # format: text.
+  events_log_format: json
+  # Firewall only: no fingerprint log. Default: enabled.
+  eventbridge_log:
+    enabled: false
