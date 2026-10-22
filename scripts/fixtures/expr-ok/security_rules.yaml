@@ -19,6 +19,11 @@ smart_firewall_rules:
       expression: |
         tcp.dstport eq 22 and
         ip.src in {10.0.0.0/8}
+      description: blocked in 2024
+    - id: plain-multi-line
+      expression: tcp.dstport eq 22 and
+        ip.src in {10.0.0.0/8}
+      note: seen in 2024
     - id: folded
       expression: >-
         tcp.dstport eq 22 and
