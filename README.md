@@ -25,6 +25,11 @@ is at [docs.gen0sec.com](https://docs.gen0sec.com).
 - [Reverse proxy with a WAF](./use-cases/reverse-proxy-waf/): Synapse as a
   TLS-terminating proxy with WAF and access rules, run as a package or with
   docker compose, with no API key.
+- [Capture IDS](./use-cases/capture-ids/): agent mode with packet capture and
+  the XDP IDS in detect-only mode, local rules and EVE alerts and stats, with no
+  API key.
+- [IDS to a SIEM](./use-cases/ids-siem/): a detect-only IDS whose alerts and
+  block events are sent as CEF to a file and a syslog collector.
 - [XDP firewall](./use-cases/xdp-firewall/): agent mode with a forced XDP
   firewall that enforces access rules and 5-tuple rules from a local file, with
   no API key.
