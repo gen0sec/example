@@ -25,6 +25,12 @@ is at [docs.gen0sec.com](https://docs.gen0sec.com).
 - [Reverse proxy with a WAF](./use-cases/reverse-proxy-waf/): Synapse as a
   TLS-terminating proxy with WAF and access rules, run as a package or with
   docker compose, with no API key.
+- [XDP firewall](./use-cases/xdp-firewall/): agent mode with a forced XDP
+  firewall that enforces access rules and 5-tuple rules from a local file, with
+  no API key.
+- [Passive monitoring](./use-cases/passive-monitoring/): agent mode with
+  packet capture and no firewall; TCP-level fingerprints are written to a log
+  and nothing is blocked.
 
 ### Being updated
 
@@ -33,7 +39,8 @@ is at [docs.gen0sec.com](https://docs.gen0sec.com).
   endpoint, so do not use it yet.
 
 Synapse configuration examples are being added: `reference/` is complete, and
-more use cases are on the way.
+more use cases are on the way. [`use-cases/`](./use-cases/) has a table of the
+sets.
 
 Config sets are checked with `synapse --check-config`, which arrives in the
 next Synapse release (no release has it yet). With a build that has it, run

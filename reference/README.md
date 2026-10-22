@@ -3,7 +3,7 @@
 Short, annotated snippets, one per feature. Each snippet is a config set that
 `synapse --check-config` accepts on its own, so you can copy a section out and
 know the key names are right. For a complete, runnable setup, see
-`use-cases/` (being added).
+`use-cases/`.
 
 | Directory | What it covers | Status |
 |---|---|---|
