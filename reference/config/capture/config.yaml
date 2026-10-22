@@ -11,8 +11,9 @@ capture:
   #   xdp             eBPF/XDP map polling (alias: kernel)
   #   af_packet       AF_PACKET TPACKET_V3 mmap ring (aliases: userspace, afpacket)
   #   af_packet_recv  AF_PACKET with plain recvfrom(); works on any kernel
-  #   af_xdp, ndis    select nothing. On Windows, NDIS capture runs whatever the
-  #                   mode is. On Linux, either value means no fingerprint capture.
+  #   af_xdp, ndis    accepted, but nothing reads them. On Windows, NDIS capture
+  #                   runs whatever the mode is. On Linux, they start no AF_PACKET
+  #                   capture. To turn capture off, set enabled: false.
   # The PF_RING backend was removed. `pfring` is read as `auto`, with a warning.
   mode: auto
 
