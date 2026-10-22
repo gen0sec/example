@@ -5,13 +5,14 @@ capture:
   # Default: true.
   enabled: true
 
-  # Backend. Default: auto (XDP, then AF_PACKET on Linux; NDIS on Windows).
-  #   auto            pick the first backend that works
+  # Backend. Default: auto. On Linux it becomes xdp when Synapse's XDP program
+  # is loaded, otherwise af_packet_recv. On Windows it is always ndis.
+  #   auto            as above
   #   xdp             eBPF/XDP map polling (alias: kernel)
   #   af_packet       AF_PACKET TPACKET_V3 mmap ring (aliases: userspace, afpacket)
   #   af_packet_recv  AF_PACKET with plain recvfrom(); works on any kernel
-  #   af_xdp          AF_XDP socket capture (Windows)
-  #   ndis            NDIS Packet Filter driver (Windows)
+  #   af_xdp, ndis    select nothing. On Windows, NDIS capture runs whatever the
+  #                   mode is. On Linux, either value means no fingerprint capture.
   # The PF_RING backend was removed. `pfring` is read as `auto`, with a warning.
   mode: auto
 
@@ -22,10 +23,10 @@ capture:
   # Bytes captured per packet. Default: 65535.
   snaplen: 65535
 
-  # BPF filter (tcpdump syntax). Not applied in af_packet_recv mode, which
-  # filters in user space. A filter you set is used as is. The default keeps
-  # TCP, also behind up to two VLAN tags and IPv6 extension headers. A bare
-  # "tcp" drops those frames, so set a filter only when you need to narrow it.
+  # BPF filter (tcpdump syntax). Only used when mode: af_packet. A filter you
+  # set is used as is. The default keeps TCP, also behind up to two VLAN tags
+  # and IPv6 extension headers. A bare "tcp" drops those frames, so set a filter
+  # only when you need to narrow it.
   # Default: tcp or (ip6 and (ip6[6] = 0 or ip6[6] = 43 or ip6[6] = 51
   #   or ip6[6] = 60)), repeated behind each of two optional VLAN tags.
   # filter: "tcp"
