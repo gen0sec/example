@@ -1,0 +1,4 @@
+# Control fixture: scripts/check-expressions.sh must refuse its security_rules.yaml.
+mode: agent
+network:
+  iface: lo

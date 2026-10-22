@@ -1,0 +1,5 @@
+# Control fixture: an `in` operator without braces.
+smart_firewall_rules:
+  rules:
+    - id: no-brace
+      expression: 'ip.src in 198.51.100.0/24'

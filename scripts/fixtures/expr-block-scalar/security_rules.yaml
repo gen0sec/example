@@ -1,0 +1,17 @@
+# Control fixture: four brace-less `in` operators, each on a line the check
+# must read although `expression:` does not carry the `in`.
+smart_firewall_rules:
+  rules:
+    - id: literal
+      expression: |
+        ip.src in 198.51.100.0/24
+    - id: folded
+      expression: >-
+        tcp.dstport eq 22 and
+        ip.src in 198.51.100.0/24
+    - id: multi-line-quoted
+      expression: 'tcp.dstport eq 22 and
+        ip.src in 198.51.100.0/24'
+    - id: in-at-line-end
+      expression: 'ip.src in
+        198.51.100.0/24'
