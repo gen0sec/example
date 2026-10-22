@@ -13,8 +13,11 @@ anything.
   example does not repeat it.
 - Linux with a kernel and a network driver that support XDP, and
   `/sys/kernel/btf/vmlinux` present. Without XDP the IDS runs over AF_PACKET.
-- Privileges to load eBPF and attach XDP: run as root, or give the process
-  `CAP_BPF` and `CAP_NET_ADMIN`. The AF_PACKET fallback needs `CAP_NET_RAW`.
+- Privileges: run as root, or give the process `CAP_BPF` and `CAP_NET_ADMIN`
+  (XDP and the TC fingerprint collectors that `capture.enabled` attaches),
+  `CAP_NET_RAW` (the AF_PACKET fallback), and `CAP_SYS_ADMIN` or
+  `CAP_PERFMON` (the SSL uprobes). The packaged systemd unit grants all of
+  these except `CAP_PERFMON`, so it relies on `CAP_SYS_ADMIN`.
 - A syslog collector that accepts CEF over UDP on port 514. Replace
   `siem.example.com` with its address.
 - No Gen0Sec API key.
