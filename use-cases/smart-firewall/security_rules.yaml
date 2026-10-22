@@ -13,26 +13,28 @@ access_rules:
 waf_rules:
   rules: []
 
-# Amygdala rules, enforced only while firewall.amygdala.enabled is true.
+# Three kinds of rule, enforced in different places (see the README):
 #
-# `block` and `allow` take {kind, value} entries: a fingerprint, where kind is
-# ja4, ja4s, ja4t, ja4ts, ja4l, ja4ls, ja4h, ja4x or ja4ssh. An entry may carry
-# ttl_seconds, or expires_at (RFC 3339), but not both.
-#
-# `rules` holds expressions, {id, expression, action}. `action` defaults to
-# block. Allow rules are applied first and exempt the flows they match from
-# any block rule. An `in` test takes a braced set: `ip.src in {192.0.2.0/24}`.
-# An expression that does not compile is skipped with a warning at start, and
-# `--check-config` does not catch it.
+# - `block` entries of kind ja4t go to the XDP fingerprint stage. They last
+#   until this file changes; `ttl_seconds` does not lift them.
+# - `rules` holds expressions, {id, expression, action}. `action` defaults to
+#   block. The first match wins, in file order: list allow rules before block
+#   rules. An `in` test takes a braced set: `ip.src in {192.0.2.0/24}`. An
+#   expression that does not compile is skipped with a warning at start, and
+#   `--check-config` does not catch it.
+# - `block` entries of the other kinds (ja4, ja4s, ja4ts, ja4l, ja4ls, ja4h,
+#   ja4x, ja4ssh) need firewall.amygdala.enabled. Such an entry may carry
+#   ttl_seconds, or expires_at (RFC 3339), but not both.
 smart_firewall_rules:
   block:
+    # A placeholder that matches no real TCP stack. Replace it with a JA4T
+    # value seen in {log_directory}/fingerprint.log.
     - kind: ja4t
-      value: "64240_2-4-8-1-3_1460_10"
-      ttl_seconds: 3600
+      value: "1_99_1_99"
   rules:
-    - id: "block-example-range"
-      expression: 'ip.src in {198.51.100.0/24}'
-      action: "block"
     - id: "allow-management"
       expression: 'ip.src in {192.0.2.0/28}'
       action: "allow"
+    - id: "block-example-range"
+      expression: 'ip.src in {198.51.100.0/24}'
+      action: "block"

@@ -1,7 +1,7 @@
-# smart-firewall: Synapse as an XDP firewall with the amygdala smart firewall
-# on top. Amygdala blocks by TLS/TCP fingerprint and by source address from
-# `smart_firewall_rules`; the IDS bans the source of a matching drop, reject
-# or block rule. No API key.
+# smart-firewall: Synapse as an XDP firewall that blocks by fingerprint and by
+# source address from `smart_firewall_rules` (see security_rules.yaml), with
+# the amygdala bridge for the other JA4 kinds. The IDS bans the source of a
+# matching drop, reject or block rule. No API key.
 mode: agent
 
 firewall:
@@ -12,17 +12,30 @@ firewall:
   # kernel firewall is installed.
   mode: xdp
   amygdala:
-    # Default: false. Fingerprint rules are enforced only while it runs.
+    # Default: false. It enforces the JA4 kinds other than ja4t. The ja4t
+    # block entries and the `rules:` expressions do not depend on it.
     enabled: true
-    # Default: auto (xdp on Linux). `afxdp` needs a dedicated interface and
-    # is not used here.
+    # Default: auto. On a build with eBPF it tries xdp, then nftables, then
+    # iptables. `afxdp` needs a dedicated interface and is not used here.
     backend: auto
+    # The bridge enforces on ONE interface. Default: unset, the first physical
+    # interface XDP attached to, while XDP itself covers every attached
+    # interface. Set it to choose. If `network.interfaces` marks one with the
+    # `smart_firewall` role, leave this unset: a different value is an error.
+    # iface: eth0
 
-# Amygdala decides on fingerprints, so capture must be on. Default: true.
+# XDP, the XDP IDS and XDP capture attach to `network.iface` / `network.ifaces`
+# (or `network.interfaces`); unset, every physical up interface is used. To
+# pin one interface, set it here and `capture.interface` below to your uplink.
+# network:
+#   iface: eth0
+
+# The expression rules need the flow events capture produces. Default: true.
 capture:
   enabled: true
-  # Interface to capture on. Default: unset (auto-detected). Change it to your
-  # uplink.
+  # Chooses the interface of the AF_PACKET fallback; XDP ignores it. Unset or
+  # "auto" binds every interface, including lo, bridges and veth. Default:
+  # unset. Change it to your uplink.
   interface: eth0
 
 ids:
@@ -54,3 +67,6 @@ logging:
   # Security-event log, {log_directory}/events.log by default. Default
   # format: text.
   events_log_format: json
+  # The amygdala bridge runs only while this log is on. Default: true.
+  eventbridge_log:
+    enabled: true
