@@ -36,6 +36,9 @@ is at [docs.gen0sec.com](https://docs.gen0sec.com).
 - [Passive monitoring](./use-cases/passive-monitoring/): agent mode with
   packet capture and no firewall; fingerprints are written to a log and nothing
   is blocked.
+- [Platform managed](./use-cases/platform-managed/): agent mode with a Gen0Sec
+  API key; the platform delivers the rules, the threat and GeoIP databases,
+  managed IDS rules and fleet bans, and there is no local rules file.
 
 ### Being updated
 

@@ -1,0 +1,88 @@
+# platform-managed: Synapse as an agent that the Gen0Sec platform manages.
+# With an API key the platform delivers the access rules, the threat database,
+# GeoIP, managed IDS rules and the fleet ban set. There is no local rules
+# file: with a key Synapse does not read security_rules.yaml.
+mode: agent
+
+platform:
+  # Master switch. false clears the key and turns off every platform feature
+  # except GeoIP. Default: true.
+  enabled: true
+  # With a Gen0Sec API key: replace the placeholder with your key, or leave it
+  # empty and set the API_KEY environment variable. Never commit a real key.
+  api_key: YOUR_API_KEY
+  # Sends access logs, fingerprint events and WAF events to the platform.
+  # Default: true. Set false to stop them. The agent heartbeat is sent while a
+  # key is set, whatever this says.
+  telemetry_sending_enabled: true
+
+  # Threat-intelligence database (MMDB), downloaded and refreshed from the
+  # platform. Default url: empty; the shipped config sets the URL below.
+  threat:
+    enabled: true
+    url: "https://download.gen0sec.com/v1"
+    # A full file path, or a directory (then the file is threat.mmdb in it).
+    path: "/var/lib/synapse/threat.mmdb"
+    # Seconds between checks for a new version. Default: 300.
+    refresh_secs: 300
+
+  # GeoIP. One combined country and ASN database; the country block serves
+  # both lookups, so asn and city are not set. Refreshed every 8 hours by
+  # default.
+  geoip:
+    enabled: true
+    country:
+      url: "https://github.com/gen0sec/geoip-databases/raw/download/ipinfo_lite.mmdb"
+      path: "/var/lib/synapse/ipinfo_lite.mmdb"
+
+  # Upload the bans this agent decided, so the platform can corroborate them
+  # across your agents. Needs the fleet_bans:write permission on the key.
+  # The url defaults to platform.base_url.
+  ban_ledger:
+    enabled: true
+
+  # Download the corroborated ban set. Advisory: matches are counted and
+  # logged, and traffic is not affected. Set enforce: true only after advisory
+  # mode has shown how many false positives you get. Needs the fleet_bans:read
+  # permission. The url defaults to platform.base_url.
+  fleet_bans:
+    enabled: true
+    advisory: true
+    enforce: false
+
+# Default: auto (XDP, then nftables, then iptables, then none).
+firewall:
+  mode: auto
+
+# Packet capture for fingerprinting. Default: true.
+capture:
+  enabled: true
+
+ids:
+  enabled: true
+  # Default: xdp. It falls back to AF_PACKET when XDP is unavailable, and the
+  # AF_PACKET IDS cannot load managed rules.
+  capture_mode: xdp
+  # No rule_paths: the rules come from the platform. The XDP IDS starts with no
+  # rules and loads the managed file once it is written.
+  # Alert only. Default: false.
+  enforce_block: false
+  # Where the platform's IDS rule bundles are written. Use an absolute path:
+  # the default is relative to the working directory. Needs the managed IDS
+  # rules to be selected for your account on the platform.
+  managed_rules_path: /var/lib/synapse/managed.rules
+
+logging:
+  # Default: info.
+  level: info
+  # Default: false (console only).
+  file_logging_enabled: true
+  # Default: /var/log/synapse
+  log_directory: "/var/log/synapse"
+  # Security-event log, {log_directory}/events.log by default. Default
+  # format: text.
+  events_log_format: json
+  eve_log:
+    enabled: true
+    file: "/var/log/synapse/eve.json"
+    event_types: [alert, stats]
