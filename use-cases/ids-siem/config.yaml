@@ -7,11 +7,18 @@ firewall:
   # Default: auto (XDP, then nftables, then iptables, then none).
   mode: auto
 
+# The XDP program and the XDP IDS run on the interfaces named here.
+# Default: unset, which auto-detects every physical interface that is up. To
+# use one interface, set both this and `capture.interface` below, for example:
+#   network:
+#     iface: eth0
+
 capture:
   # Default: true.
   enabled: true
-  # Interface to capture on. Default: unset (auto-detected). Change it to your
-  # uplink.
+  # Used only by the AF_PACKET capture and the AF_PACKET IDS fallback. It does
+  # not choose the XDP interface: that is `network` above. Default: unset
+  # (auto-detected). Set it to the same uplink as `network.iface`.
   interface: eth0
 
 ids:
@@ -34,6 +41,9 @@ logging:
   file_logging_enabled: true
   # Default: /var/log/synapse
   log_directory: "/var/log/synapse"
+  # Security-event log. Default file: {log_directory}/events.log; default
+  # format: text.
+  events_log_format: json
   # Suricata-compatible EVE JSON. Default: disabled; default file
   # {log_directory}/eve.json; default event_types: empty (every type).
   eve_log:
@@ -64,5 +74,7 @@ logging:
     streams:
       # Security decisions. Default: true.
       block_events: true
-      # IDS alerts, including alert-only rules. Default: false.
+      # IDS alerts. Default: false. A live IDS alert is also a block event
+      # (layer ids), so with both streams on each alert is sent twice. Set one
+      # of the two to false for one record per alert.
       ids_alerts: true

@@ -10,7 +10,7 @@ it does not block anything.
 [`host-ids`](../host-ids/) is the portable demo: capture off, an AF_PACKET IDS
 on loopback, so you can trigger its rule from the same host. This set is the
 production shape: capture on, `ids.capture_mode: xdp` (the default), and
-`firewall.mode: auto`, on the interface you set. If no XDP program is attached,
+`firewall.mode: auto`, on the auto-detected physical interfaces. If no XDP program is attached,
 the IDS falls back to the AF_PACKET IDS. Both sets are local-only
 (`managed_rules_path: ""`) and alert only (`enforce_block: false`).
 
@@ -30,10 +30,19 @@ the IDS falls back to the AF_PACKET IDS. Both sets are local-only
 
 | File | What it does |
 |---|---|
-| [`config.yaml`](./config.yaml) | Agent mode, capture on `eth0`, XDP IDS in detect-only mode, EVE log (`alert` and `stats`) to `/var/log/synapse/eve.json` |
+| [`config.yaml`](./config.yaml) | Agent mode, capture on, XDP IDS in detect-only mode, EVE log (`alert` and `stats`) to `/var/log/synapse/eve.json` |
 | [`rules/capture-ids.rules`](./rules/capture-ids.rules) | One test rule, a copy of the one in host-ids: alert on an ICMP echo request whose payload contains `gen0sec-test` |
 
-Set `capture.interface` to your uplink if it is not `eth0`.
+Set the interface as described in "Which interface" below.
+
+## Which interface
+
+`network.iface` (or `network.interfaces`) chooses the interfaces the XDP
+program and the XDP IDS run on. Left unset, as here, Synapse auto-detects every
+physical interface that is up. `capture.interface` is read only by the
+AF_PACKET capture and the AF_PACKET IDS fallback; it does not choose the XDP
+interface. To run on one interface, set both to it (the commented lines in
+`config.yaml`).
 
 ## Run as a package
 

@@ -26,7 +26,16 @@ anything.
 | [`config.yaml`](./config.yaml) | Agent mode, XDP IDS in detect-only mode, EVE log (`alert`), CEF to `/var/log/synapse/cef.log` and to syslog `siem.example.com:514` over UDP in RFC 5424 |
 | [`rules/ids-siem.rules`](./rules/ids-siem.rules) | One test rule, a copy of the one in host-ids: alert on an ICMP echo request whose payload contains `gen0sec-test` |
 
-Set `capture.interface` to your uplink if it is not `eth0`.
+Set the interface as described in "Which interface" below.
+
+## Which interface
+
+`network.iface` (or `network.interfaces`) chooses the interfaces the XDP
+program and the XDP IDS run on. Left unset, as here, Synapse auto-detects every
+physical interface that is up. `capture.interface` is read only by the
+AF_PACKET capture and the AF_PACKET IDS fallback; it does not choose the XDP
+interface. To run on one interface, set both to it (the commented lines in
+`config.yaml`).
 
 ## Run as a package
 
@@ -42,9 +51,14 @@ service, see the installation guide.
 
 ## How the CEF output works
 
-- `logging.cef.streams.ids_alerts: true` renders IDS alerts, including
-  alert-only rules, as CEF. `block_events: true` renders security decisions
-  from every layer. The access-log and fingerprint streams stay off.
+- `logging.cef.streams.block_events: true` renders security decisions from
+  every layer. A live IDS alert is also a block event (layer `ids`, severity
+  notice), so it is already sent through this stream, alert-only rules
+  included. `ids_alerts: true` renders the same alert a second time, from the
+  EVE path. With both on, each live alert is sent twice. Set one of the two to
+  `false` for one record per alert. A pcap replay cannot show this: the
+  offline IDS emits no block event. The access-log and fingerprint streams
+  stay off.
 - The CEF syslog sink is Synapse's own direct sender: it opens its own socket
   to the collector. It is separate from the local syslog daemon and from the
   `logging.syslog` section, so it needs no local syslog setup.
@@ -55,17 +69,27 @@ service, see the installation guide.
   output is off for that run. The agent keeps running.
 - `transport: udp` cannot slow the agent but loses records if the collector or
   the network drops them. `transport: tcp` is reliable, but the sink drops
-  records while the connection is down. `rfc: rfc3164` is for collectors that
+  records while the connection is down. The write runs on the thread that
+  emits the record, and while the collector is down each record tries a 500 ms
+  connect. With `ids_alerts` on, that thread can be the IDS inspect thread, so
+  inspection can stall. TCP frames each record by octet count (RFC 6587), so
+  the collector must support that framing. `rfc: rfc3164` is for collectors that
   only speak BSD syslog.
 - `device_host` is sent as `dvchost` in every record; left empty, the system
   hostname is used.
 
 ## Sending the data on
 
-- [`integrations/splunk`](../../integrations/splunk/): a Splunk add-on that
-  parses Synapse logs.
+These integrations do not carry this set's CEF output:
+
+- [`integrations/splunk`](../../integrations/splunk/): a Splunk add-on for
+  Synapse's access logs and `events.log`. It does not parse CEF. Use it for
+  those logs, or point your SIEM's CEF parser at the collector instead.
 - [`integrations/syslog-ng`](../../integrations/syslog-ng/): forwards
-  Synapse's syslog to a remote host through syslog-ng.
+  Synapse's own syslog output (`logging.syslog`) to a remote host. This set
+  leaves `logging.syslog` off, and the CEF sender does not go through the local
+  syslog daemon, so that config does not apply to it. You can still run
+  syslog-ng as the collector that receives the CEF datagrams.
 
 ## Limits
 
