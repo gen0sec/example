@@ -1,8 +1,8 @@
 # passive-monitoring
 
-Synapse as a passive network observer. The agent captures packets on one
-interface and writes the fingerprints it computes to a log. It blocks
-nothing: there is no kernel firewall, no IDS and no rules file.
+Synapse as a passive network observer. The agent captures packets on the
+interface in `capture.interface` and writes the fingerprints it computes to a
+log. It blocks nothing: there is no kernel firewall, no IDS and no rules file.
 
 ## What you need
 
@@ -24,13 +24,15 @@ nothing: there is no kernel firewall, no IDS and no rules file.
 
 | File | What it does |
 |---|---|
-| [`config.yaml`](./config.yaml) | Agent mode, no firewall, capture with `mode: auto` on the auto-detected interfaces, file logging to `/var/log/synapse` with the eventbridge and events logs |
+| [`config.yaml`](./config.yaml) | Agent mode, no firewall, capture with `mode: auto` on `capture.interface`, file logging to `/var/log/synapse` with the eventbridge and events logs |
 
-Capture runs on the interfaces from `network.iface`, `network.ifaces` or
-`network.interfaces`. Unset, or `auto`, it uses every physical interface that
-is up. `capture.interface` is read only by the AF_PACKET capture. To watch one
-interface, set both `network.iface` and `capture.interface` to your uplink; the
-config has a commented example.
+With `firewall.mode: none` no BPF program loads, so capture is AF_PACKET and
+`capture.interface` chooses the interface. Unset, or `auto`, it listens on
+every interface, including `lo` and virtual ones. The eBPF collectors (JA4TS,
+JA4L, JA4S, JA4SSH) attach to one interface from `network.iface`, `ifaces` or
+`interfaces`; unset, the first physical one. Set `capture.interface` and
+`network.iface` to your uplink. The config ships `capture.interface: eth0` and
+a commented `network.iface` example.
 
 ## Run as a package
 

@@ -14,12 +14,13 @@ capture:
   # Default: auto. Resolves to XDP when BPF programs are loaded, otherwise
   # to AF_PACKET with recvfrom(). With firewall.mode none it is AF_PACKET.
   mode: auto
-  # Used only by the AF_PACKET capture. XDP and the eBPF collectors attach to
-  # the interfaces of `network:` below. Default: unset (auto-detected).
-  # interface: eth0
+  # With firewall.mode none this set captures with AF_PACKET, and this key
+  # chooses the interface. Unset or "auto" listens on every interface,
+  # including lo and virtual ones. Set it to your uplink.
+  interface: eth0
 
-# The interfaces the capture runs on. Default: auto, every physical interface
-# that is up. To watch one, set `iface` and `capture.interface` to your uplink.
+# The one interface the eBPF collectors (JA4TS, JA4L, JA4S, JA4SSH) attach to.
+# Default: unset, the first physical interface. Set it to the same uplink.
 # `network.ifaces` takes a list, and `network.interfaces` a per-interface map.
 # network:
 #   iface: eth0

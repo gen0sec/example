@@ -70,11 +70,11 @@ lines.
 
 - XDP attaches to the interfaces Synapse selects. Automatic selection skips
   virtual interfaces and bridge masters (a bridge's member ports are used).
-  `firewall.attach_veth` matters only for a `veth` you list explicitly in
-  `network.ifaces`. To choose the interfaces yourself, set `network.iface`
-  or `network.ifaces`, or `network.interfaces` for a per-interface map; unset,
-  every physical interface that is up gets the program. Run `ip link` to see
-  which carry it.
+  `firewall.attach_veth` matters only for a `veth` you list in
+  `network.iface` or `network.ifaces`. To choose the interfaces yourself, set
+  those, or `network.interfaces` for a per-interface map; unset, every
+  physical interface that is up gets the program. Run `ip link` to see which
+  carry it.
 - `max_ip_filter_entries_v4` and `_v6` are the capacity of the kernel IP
   filter. When one fills, new blocks are decided but never reach the kernel.
   A larger value takes effect only after `synapse --force-stop` or a reboot,
