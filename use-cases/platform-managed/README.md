@@ -19,7 +19,9 @@ There is no local rules file.
   and when unset those bind to every interface, including `lo`, bridges and
   veth. Set both `network.iface` and `capture.interface` to your uplink.
 - Privileges to load and attach XDP programs: run as root, or give the process
-  `CAP_BPF` and `CAP_NET_ADMIN`. Packet capture needs `CAP_NET_RAW` as well.
+  `CAP_BPF` and `CAP_NET_ADMIN`. With `capture.enabled: true` the TC collectors
+  and SSL uprobes also attach, which needs `CAP_NET_RAW` and `CAP_SYS_ADMIN` or
+  `CAP_PERFMON`.
   Run as a container, the image needs the capabilities its installation guide
   lists.
 - A Gen0Sec API key. You get it from your Gen0Sec dashboard. The key also
@@ -70,8 +72,8 @@ service, see the installation guide.
 - **Ban ledger and fleet bans** (`platform.ban_ledger`, `platform.fleet_bans`).
   The agent uploads the bans it decided. The platform corroborates them across
   your agents and publishes the result, which the agent downloads. In this set
-  the downloaded set is advisory: matches are counted and nothing is
-  blocked. `enforce: true` installs them in the kernel filter; turn it on
+  the downloaded set is advisory: matches are counted and logged and
+  nothing is blocked. `enforce: true` installs them in the kernel filter; turn it on
   only after advisory mode has shown how many false positives you get.
 
 Two paths use two different directories. `daemon.working_directory` holds the
@@ -144,10 +146,13 @@ Look for these lines in the console or in the log file:
   keeps going.
 - `[agent_status] capabilities (N) at boot: [...]` lists what this agent
   reports to the platform. It appears once the key is set.
-- `[thalamus_ids] Started (source=xdp, rules=N, ...` shows the XDP IDS is up.
-  After the platform writes a new rule bundle, `[thalamus_ids] Config reload:
-  hot-swapped IDS engine (rules=N, ...` gives the new rule count.
+- `"thalamus_ids_xdp": true` in the `startup_complete` line shows the XDP IDS
+  is enabled. After the platform writes a new rule bundle, `[thalamus_ids]
+  Config reload: hot-swapped IDS engine (rules=N, ...` gives the new rule
+  count.
   `ids.enabled=true and ids.capture_mode=xdp but no active XDP skeletons are
   attached; XDP IDS worker not started` means XDP did not attach.
 - `[fleet-bans] loaded N bans version=...` shows the fleet set was downloaded.
-  In advisory mode there is no per-match line; matches are only counted.
+  In advisory mode a match writes an `events.log` entry with action `notice`,
+  `rule_id` `fleet_bans.advisory` and a message ending "would have blocked",
+  at most once per address per 300 seconds (`advisory_dedup_secs`).

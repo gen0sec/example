@@ -11,11 +11,10 @@ daemon:
   working_directory: "/var/lib/synapse"
 
 # Interfaces. Left unset, XDP, the XDP IDS and XDP capture attach to every
-# physical interface that is up. To pick them, set network.interfaces, or
-# network.iface / network.ifaces (not both forms). Set it to the same uplink as
-# capture.interface below:
-#network:
-#  iface: eth0
+# physical interface that is up. To pick one, set network.iface to the same
+# uplink as capture.interface below:
+# network:
+#   iface: eth0
 
 platform:
   # Master switch. false clears the key and turns off every platform feature
