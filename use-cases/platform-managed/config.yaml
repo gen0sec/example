@@ -1,0 +1,106 @@
+# platform-managed: Synapse as an agent that the Gen0Sec platform manages.
+# With an API key the platform delivers the access rules, the threat database,
+# GeoIP, managed IDS rules and the fleet ban set. There is no local rules
+# file: with a key Synapse does not read security_rules.yaml.
+mode: agent
+
+# The config cache cached_config.json is written here. The code default is /,
+# which would put it at /cached_config.json. This is not the process working
+# directory: the managed rules path below is absolute for that reason.
+daemon:
+  working_directory: "/var/lib/synapse"
+
+# Interfaces. Left unset, XDP, the XDP IDS and XDP capture attach to every
+# physical interface that is up. To pick one, set network.iface to the same
+# uplink as capture.interface below:
+# network:
+#   iface: eth0
+
+platform:
+  # Master switch. false clears the key and turns off every platform feature
+  # except GeoIP. Default: true.
+  enabled: true
+  # With a Gen0Sec API key: replace the placeholder with your key, or leave it
+  # empty and set the API_KEY environment variable. Never commit a real key.
+  api_key: YOUR_API_KEY
+  # Sends access logs, fingerprint events and WAF events to the platform.
+  # Default: true. Set false to stop them. The agent heartbeat is sent while a
+  # key is set, whatever this says.
+  telemetry_sending_enabled: true
+
+  # Threat-intelligence database (MMDB), downloaded and refreshed from the
+  # platform. Default url: empty; the shipped config sets the URL below.
+  threat:
+    enabled: true
+    url: "https://download.gen0sec.com/v1"
+    # A full file path, or a directory (then the file is threat.mmdb in it).
+    path: "/var/lib/synapse/threat.mmdb"
+    # Seconds between checks for a new version. Default: 300.
+    refresh_secs: 300
+
+  # GeoIP. One combined country and ASN database; the country block serves
+  # both lookups, so asn and city are not set. Refreshed every 8 hours by
+  # default.
+  geoip:
+    enabled: true
+    country:
+      url: "https://github.com/gen0sec/geoip-databases/raw/download/ipinfo_lite.mmdb"
+      path: "/var/lib/synapse/ipinfo_lite.mmdb"
+
+  # Upload the bans this agent decided, so the platform can corroborate them
+  # across your agents. Needs the fleet_bans:write permission on the key.
+  # The url defaults to platform.base_url.
+  ban_ledger:
+    enabled: true
+
+  # Download the corroborated ban set. Advisory: matches are counted and
+  # logged, and traffic is not affected. Set enforce: true only after advisory
+  # mode has shown how many false positives you get. Needs the fleet_bans:read
+  # permission. The url defaults to platform.base_url.
+  fleet_bans:
+    enabled: true
+    advisory: true
+    enforce: false
+
+# Default: auto (XDP, then nftables, then iptables, then none).
+firewall:
+  mode: auto
+
+# Packet capture for fingerprinting. Default: true.
+capture:
+  enabled: true
+  # Chooses the interface of the AF_PACKET capture and IDS fallback, not of
+  # XDP (that is network.iface above). Unset, they bind to every interface,
+  # lo, bridges and veth included. Replace eth0 with your uplink.
+  interface: eth0
+
+ids:
+  enabled: true
+  # Default: xdp. Without XDP the XDP IDS is skipped. The AF_PACKET fallback
+  # needs rule_paths and does not start with an empty list, so this set then
+  # runs no IDS at all. capture.interface is read only by that
+  # fallback; set it and network.iface both to your uplink.
+  capture_mode: xdp
+  # No rule_paths: the rules come from the platform. The XDP IDS starts with no
+  # rules and loads the managed file once it is written.
+  # Alert only. Default: false.
+  enforce_block: false
+  # Where the platform's IDS rule bundles are written. Use an absolute path:
+  # the default is relative to the working directory. Needs the managed IDS
+  # rules to be selected for your account on the platform.
+  managed_rules_path: /var/lib/synapse/managed.rules
+
+logging:
+  # Default: info.
+  level: info
+  # Default: false (console only).
+  file_logging_enabled: true
+  # Default: /var/log/synapse
+  log_directory: "/var/log/synapse"
+  # Security-event log, {log_directory}/events.log by default. Default
+  # format: text.
+  events_log_format: json
+  eve_log:
+    enabled: true
+    file: "/var/log/synapse/eve.json"
+    event_types: [alert, stats]

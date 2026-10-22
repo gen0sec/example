@@ -12,6 +12,7 @@ closest to what you want and copy it. Every set uses placeholder values
 | [`passive-monitoring`](./passive-monitoring/) | agent | no | `CAP_NET_RAW`, `CAP_BPF`, `CAP_NET_ADMIN`, and `CAP_SYS_ADMIN` or `CAP_PERFMON` | Fingerprints (TCP, TLS, certificate) written to a log; nothing is blocked |
 | [`capture-ids`](./capture-ids/) | agent | no | `CAP_NET_RAW`, `CAP_BPF`, `CAP_NET_ADMIN`, and `CAP_SYS_ADMIN` or `CAP_PERFMON` | Production shape of host-ids: capture on, XDP IDS with local rules, alert only, EVE alerts and stats |
 | [`ids-siem`](./ids-siem/) | agent | no | `CAP_NET_RAW`, `CAP_BPF`, `CAP_NET_ADMIN`, and `CAP_SYS_ADMIN` or `CAP_PERFMON` | Detect-only IDS whose alerts and block events go out as CEF to a file and a syslog collector |
+| [`platform-managed`](./platform-managed/) | agent | yes | `CAP_BPF` and `CAP_NET_ADMIN` (XDP); `CAP_NET_RAW` and `CAP_SYS_ADMIN` or `CAP_PERFMON` for capture | Platform-managed agent: dynamic rules, threat and GeoIP databases, managed IDS rules and fleet bans (advisory) from the platform; no local rules file |
 
 "Privileges" lists what the set's own config needs; the installation guide
 lists what the container image needs on top. Installation is covered in the
