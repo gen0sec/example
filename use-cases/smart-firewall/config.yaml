@@ -16,7 +16,7 @@ firewall:
     # block entries and the `rules:` expressions do not depend on it.
     enabled: true
     # Default: auto. On a build with eBPF it tries xdp, then nftables, then
-    # iptables. `afxdp` needs a dedicated interface and is not used here.
+    # iptables; with `network.interfaces` set, xdp only. `afxdp` needs a dedicated interface and is not used here.
     backend: auto
     # The bridge enforces on ONE interface. Default: unset, the first physical
     # interface XDP attached to, while XDP itself covers every attached

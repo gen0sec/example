@@ -21,12 +21,18 @@ fingerprint capture and no proxy.
 logs `XDP mode forced but BPF not available`, and then:
 
 - the `firewall_rules` (5-tuple rules) fall through to nftables or iptables,
-  whichever accepts them;
+  whichever accepts them, but only while `network.interfaces` is unset;
 - the `access_rules` allow and block lists are not enforced, because no
   netfilter backend is set up for them in this mode.
 
-With `firewall.mode: auto`, Synapse falls back to nftables, then iptables, for
-both.
+With `network.interfaces` set, Synapse enforces through XDP only, because
+nftables and iptables are host-wide and would touch interfaces the map leaves
+out. If XDP cannot load, no kernel firewall is installed, for the 5-tuple rules
+too.
+
+With `firewall.mode: auto` and `network.interfaces` unset, Synapse falls back
+to nftables, then iptables, for both. With `network.interfaces` set, `auto`
+installs no kernel firewall when XDP cannot load.
 
 ## Files
 
@@ -72,7 +78,8 @@ lines.
   virtual interfaces and bridge masters (a bridge's member ports are used).
   `firewall.attach_veth` matters only for a `veth` you list in
   `network.iface` or `network.ifaces`. To choose the interfaces yourself, set
-  those, or `network.interfaces` for a per-interface map; unset, every
+  those, or `network.interfaces` for a per-interface map (which also removes
+  the netfilter fallback above); unset, every
   physical interface that is up gets the program. Run `ip link` to see which
   carry it.
 - `max_ip_filter_entries_v4` and `_v6` are the capacity of the kernel IP

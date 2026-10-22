@@ -10,6 +10,7 @@ firewall:
   # then none). If XDP cannot be loaded, `xdp` logs "XDP mode forced but BPF not
   # available": the firewall_rules fall through to nftables or iptables, but
   # the access_rules are not enforced. Set `auto` to fall back for both.
+  # Neither fallback happens when `network.interfaces` is set.
   mode: xdp
   # Capacity of the XDP IP-filter tries, per address family. When one fills,
   # new blocks are decided but never reach the kernel. Pinned maps keep their
