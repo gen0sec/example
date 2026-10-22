@@ -46,7 +46,7 @@ detect_build() {
   fi
 }
 
-if [ "${TEST_CHECK_DETECT_ONLY:-}" = 1 ]; then
+if [ "${1:-}" = --detect-only ]; then
   detect_build
   exit 0
 fi
@@ -92,7 +92,7 @@ fi
 
 # Which build is this? Detection must also work from a relative SYNAPSE_BIN.
 build=$(detect_build)
-rel_build=$(cd "$(dirname "$bin")" && TEST_CHECK_DETECT_ONLY=1 SYNAPSE_BIN=./$(basename "$bin") "$here/test-check.sh")
+rel_build=$(cd "$(dirname "$bin")" && SYNAPSE_BIN=./$(basename "$bin") "$here/test-check.sh" --detect-only)
 if [ "$rel_build" = "$build" ]; then
   echo "ok:   build detection works from a relative SYNAPSE_BIN ($build)"
 else
@@ -103,7 +103,7 @@ if [ "$build" = unknown ]; then
 elif [ "$build" = default ]; then
   echo "build: default (no classifier feature)"
   expect pass "ML keys are skipped" "skip .*ML keys need a classifier build" "$check" "$fx/ml-keys"
-  expect pass "skip is counted in the summary" "1 skipped" "$check" "$fx/ml-keys"
+  expect pass "skip is counted in the summary" "0 config set(s) passed, 1 skipped" "$check" "$fx/ml-keys"
   expect fail "ML keys plus a typo fail" "network.ifce" "$check" "$fx/ml-keys-typo"
   expect fail "ML keys fail under SYNAPSE_REQUIRE_ML=1" "Config options not supported" \
     env SYNAPSE_REQUIRE_ML=1 "$check" "$fx/ml-keys"
