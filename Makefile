@@ -14,6 +14,9 @@ install: ## Install the lint tooling (yamllint, pinned in requirements-dev.txt)
 lint: ## Lint every YAML file, and refuse a brace-less `in` in rules expressions
 	yamllint .
 	scripts/check-expressions.sh
+	scripts/check-expressions.sh scripts/fixtures/expr-ok >/dev/null 2>&1
+	scripts/check-expressions.sh scripts/fixtures/expr-no-brace >/dev/null 2>&1; test $$? -eq 1
+	scripts/check-expressions.sh scripts/fixtures/expr-block-scalar 2>&1 >/dev/null | grep -c "without braces" | grep -qx 4
 
 test: test-check ## Run the controls, then check every config set with `synapse --check-config` (set SYNAPSE_BIN; SYNAPSE_REQUIRE_ML=1 fails sets skipped for lack of the classifier feature)
 	scripts/check.sh

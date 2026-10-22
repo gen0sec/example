@@ -1,0 +1,30 @@
+# Control fixture: forms the brace check must accept.
+smart_firewall_rules:
+  rules:
+    # Each rule expression: evaluated in file order
+    #     expression: 'ip.src in 10.0.0.0/8'
+    - id: braced
+      expression: 'ip.src in {10.0.0.0/8}'  # added in 2024
+    - id: list-variable
+      expression: 'ip.src in $office'
+    - id: negated
+      expression: 'not ip.src in {10.0.0.0/8 192.0.2.0/24}'
+    - id: double-quoted
+      expression: "ip.src in {198.51.100.0/24}"
+    - id: prose-key
+      description: 'match_expression: hosts in europe'
+      expression: 'tcp.dstport eq 22'
+    - {id: flow, expression: 'ip.src in {10.0.0.0/8}', action: block}
+    - id: block-scalar
+      expression: |
+        tcp.dstport eq 22 and
+        ip.src in {10.0.0.0/8}
+    - id: folded
+      expression: >-
+        tcp.dstport eq 22 and
+        ip.src in
+        {10.0.0.0/8}
+      action: block
+    - id: multi-line-quoted
+      expression: 'tcp.dstport eq 22 and
+        ip.src in {10.0.0.0/8}'
