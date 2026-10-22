@@ -27,8 +27,8 @@ waf_rules:
 #   ttl_seconds, or expires_at (RFC 3339), but not both.
 smart_firewall_rules:
   block:
-    # A placeholder that matches no real TCP stack. Replace it with a JA4T
-    # value seen in {log_directory}/fingerprint.log.
+    # A placeholder that matches no real TCP stack. Replace it with the
+    # `ja4t` field of a fingerprint record in {log_directory}/eventbridge.log.
     - kind: ja4t
       value: "1_99_1_99"
   rules:

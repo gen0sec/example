@@ -13,8 +13,13 @@ source of a flow that matches a blocking rule.
   example does not repeat it.
 - Linux with a kernel and a network driver that support XDP, and
   `/sys/kernel/btf/vmlinux` present.
-- Privileges to load eBPF and attach XDP: run as root, or give the process
-  `CAP_BPF` and `CAP_NET_ADMIN`. Without them the XDP backend cannot load.
+- Privileges: run as root, or give the process these capabilities.
+  - `CAP_BPF` and `CAP_NET_ADMIN`: load and attach XDP, and the TC
+    collectors. Without them the XDP backend cannot load.
+  - `CAP_SYS_ADMIN` or `CAP_PERFMON`: the SSL uprobes that capture needs.
+  - `CAP_NET_RAW`: the AF_PACKET fallback.
+
+  The packaged service unit grants all of them except `CAP_PERFMON`.
 - A Synapse build with the smart firewall. `amygdala-reactor` is in the
   default features, so the standard and `-ml` packages have it. It is enabled
   at runtime by `firewall.amygdala.enabled: true`, which this set sets.
@@ -125,8 +130,9 @@ as JSON lines.
 - The check above proves the files parse. It does not prove that XDP attaches
   or that a rule blocks.
 - Fingerprint rules need traffic that produces the fingerprint. The JA4T value
-  in the file is a placeholder that matches no real stack: replace it with one
-  from `/var/log/synapse/fingerprint.log`.
+  in the file is a placeholder that matches no real stack: replace it with the
+  `ja4t` field of a `"event_type":"fingerprint"` record in
+  `/var/log/synapse/eventbridge.log`.
 - On v0.8.9 a JA4T block lasts until the file changes. There is no timeout.
 - Fleet-wide and platform-managed rules need an API key and are not part of
   this set.
