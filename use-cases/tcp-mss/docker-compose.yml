@@ -1,0 +1,17 @@
+# Run:  docker compose up -d
+# Loading BPF programs needs privileges and a bpffs to pin maps in. Run this
+# on a Linux host, not Docker Desktop. BPFFS defaults to the host's /sys/fs/bpf,
+# which an agent on the same host shares; point it at a bpffs of its own to isolate them.
+services:
+  synapse:
+    image: ${SYNAPSE_IMAGE:-registry.gen0sec.com/gen0sec/synapse:0.8.9}
+    command: ["-c", "/etc/synapse/config.yaml"]
+    privileged: true
+    ports: ["8085:8080"]
+    volumes:
+      - .:/etc/synapse:ro
+      - ${BPFFS:-/sys/fs/bpf}:/sys/fs/bpf
+    depends_on: [web]
+  web:
+    image: traefik/whoami:v1.10.3
+    hostname: web

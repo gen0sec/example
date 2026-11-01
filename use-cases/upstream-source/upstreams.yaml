@@ -1,0 +1,17 @@
+# Bind the connections to the back-end to a local address, interface and port
+# range, so the back-end (or a firewall in front of it) sees a known source.
+# Needs Synapse 0.8.9 or later.
+version: 2
+
+# Allowed at the top level, on a host and on a path. A field set lower replaces
+# the same field set higher; `null` clears an inherited field.
+upstream_source:
+  address: 172.30.4.10            # an address of this host, the same family as the back-end
+  # interface: eth1               # a device name; a VRF works. Not set here: names vary by host
+  port_range: [40000, 40099]      # [low, high]; needs Linux 6.3 or later
+
+hosts:
+  app.example.com:
+    paths:
+      "/":
+        upstream: 172.30.4.11:80

@@ -1,0 +1,20 @@
+# Run:  docker compose up -d
+# The back-end echoes the address and port it sees (RemoteAddr). Through
+# Synapse the port lies in upstream_source.port_range. The kernel must be 6.3 or later.
+services:
+  synapse:
+    image: ${SYNAPSE_IMAGE:-registry.gen0sec.com/gen0sec/synapse:0.8.9}
+    command: ["-c", "/etc/synapse/config.yaml"]
+    ports: ["8083:8080"]
+    volumes: [".:/etc/synapse:ro"]
+    networks: { back: { ipv4_address: 172.30.4.10 } }
+    depends_on: [web]
+  web:
+    image: traefik/whoami:v1.10.3
+    hostname: web
+    networks: { back: { ipv4_address: 172.30.4.11 } }
+
+networks:
+  back:
+    ipam:
+      config: [{ subnet: 172.30.4.0/24 }]

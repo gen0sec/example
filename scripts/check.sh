@@ -100,6 +100,12 @@ for dir in "${sets[@]}"; do
     args+=(--security-rules-config security_rules.yaml)
   fi
 
+  # A set whose config names certificate files ships make-certs.sh to make
+  # test ones; the binary reads them when it loads the file.
+  if [ -x "$dir/make-certs.sh" ]; then
+    "$dir/make-certs.sh" >/dev/null 2>&1 || { echo "FAIL $dir (make-certs.sh failed)"; failed=$((failed + 1)); continue; }
+  fi
+
   out=$(cd "$dir" && "$bin" "${args[@]}" 2>&1)
   rc=$?
 

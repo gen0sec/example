@@ -1,0 +1,16 @@
+# Run:  ./make-certs.sh && docker compose up -d
+services:
+  synapse:
+    image: ${SYNAPSE_IMAGE:-registry.gen0sec.com/gen0sec/synapse:0.8.9}
+    command: ["-c", "/etc/synapse/config.yaml"]
+    working_dir: /etc/synapse        # relative paths in the config (certs/) start here
+    ports: ["8084:8080"]
+    volumes: [".:/etc/synapse:ro"]
+    depends_on: [backend]
+  backend:
+    image: nginx:1.27-alpine
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./certs:/certs:ro
+    networks:
+      default: { aliases: [backend.internal] }
