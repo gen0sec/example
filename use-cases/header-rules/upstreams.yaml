@@ -1,0 +1,60 @@
+# Add and remove headers on the request (before it goes to the back-end) and on
+# the response (before it reaches the client). Two tools, layered global -> host -> route:
+#   headers:     literal "Name: value" entries; each one SETS (replaces) the header
+#   transforms:  ordered rules: remove, set, set_expr, add, add_expr, with an optional `when`
+# At each level `headers:` runs first, then that level's `transforms:`, so the
+# more specific level wins. Rules are not applied to responses Synapse makes itself
+# (block pages, redirects, 404s).
+version: 2
+
+# ---- global: every host and route -----------------------------------------
+headers:
+  request:
+    - "X-Edge: synapse"                  # set on every request
+  response:
+    - "X-Content-Type-Options: nosniff"  # set on every response
+
+transforms:
+  request_headers:
+    # Drop headers a client must not send. An exact name, or a prefix ending in `*`.
+    - remove: ["X-Debug", "X-Internal-*"]
+  response_headers:
+    # Hide what the origin reveals about itself.
+    - remove: ["Server", "X-Powered-By"]
+
+hosts:
+  app.example.com:
+    # ---- host: extends the global lists --------------------------------------
+    headers:
+      response:
+        - "X-Frame-Options: DENY"
+    transforms:
+      request_headers:
+        # `when` is a wirefilter filter, as in WAF rules.
+        - when: 'starts_with(http.request.path, "/req/api")'
+          set:
+            X-Api-Version: v2
+        # `set_expr` takes a value expression that must produce a string.
+        - set_expr:
+            X-Client-Ip: to_string(ip.src)
+        # `add` appends a value and keeps the ones already there.
+        - add:
+            X-Trace: from-synapse
+      response_headers:
+        - remove: ["X-Internal-*"]
+        # `add` appends; a list adds several values.
+        - add:
+            Set-Cookie: ["edge=1; Path=/", "region=eu; Path=/"]
+        - when: 'http.response.status == 200'
+          set:
+            Cache-Control: no-store
+    paths:
+      # The back-end echoes the request headers it received.
+      "/req":
+        upstream: whoami:80
+        headers:
+          request:
+            - "X-Route: req"             # route level: set only for this route
+      # The origin sends headers the response rules add to or remove.
+      "/resp":
+        upstream: origin:80
