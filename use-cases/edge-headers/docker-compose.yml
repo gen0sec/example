@@ -1,0 +1,30 @@
+# Run:  ./make-certs.sh && docker compose up -d
+# client-a (172.30.6.21) is an ordinary client. client-b (172.30.6.22) is in
+# xff_exempt_networks. See the README for the requests to send.
+services:
+  synapse:
+    image: ${SYNAPSE_IMAGE:-registry.gen0sec.com/gen0sec/synapse:0.8.9}
+    command: ["-c", "/etc/synapse/config.yaml"]
+    ports: ["8086:8080", "8446:8443"]
+    volumes: [".:/etc/synapse:ro"]
+    networks: { edge: { ipv4_address: 172.30.6.10 } }
+    depends_on: [web]
+  web:
+    image: traefik/whoami:v1.10.3
+    hostname: web
+    networks: { edge: { ipv4_address: 172.30.6.11 } }
+  client-a:
+    image: curlimages/curl:8.10.1
+    profiles: ["demo"]
+    entrypoint: ["sleep", "infinity"]
+    networks: { edge: { ipv4_address: 172.30.6.21 } }
+  client-b:
+    image: curlimages/curl:8.10.1
+    profiles: ["demo"]
+    entrypoint: ["sleep", "infinity"]
+    networks: { edge: { ipv4_address: 172.30.6.22 } }
+
+networks:
+  edge:
+    ipam:
+      config: [{ subnet: 172.30.6.0/24 }]

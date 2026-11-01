@@ -1,0 +1,28 @@
+version: 2
+
+# Strict-Transport-Security for TLS clients: at the top level or on a host, not on
+# a path and not on a passthrough host. `max_age` is required. preload: true
+# needs max_age of at least 31536000 and include_subdomains: true.
+hsts:
+  max_age: 31536000
+  include_subdomains: true
+  preload: false
+
+hosts:
+  app.example.com:
+    tls:
+      terminate:
+        cert: app.example.com
+    paths:
+      "/":
+        upstream: web:80
+
+  # A host can drop the inherited setting.
+  legacy.example.com:
+    hsts: "off"
+    tls:
+      terminate:
+        cert: app.example.com
+    paths:
+      "/":
+        upstream: web:80
