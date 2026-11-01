@@ -1,0 +1,50 @@
+# Re-encrypt to a TLS back-end. From 0.8.9 Synapse checks the back-end's
+# certificate chain and name on terminated routes; a certificate it cannot
+# verify fails the connect and the route answers 502.
+# `client_cert` and `client_key` present a client certificate (mTLS).
+# Remove client_cert and client_key before rolling back to an older version:
+# older versions refuse a file that holds them.
+version: 2
+
+# Defaults for every route; a host or path can set its own, field by field.
+# `ca` is a PEM file that REPLACES the system trust store for the route.
+# `verify: true` is the default; false checks neither chain nor name.
+upstream_tls:
+  verify: true
+
+hosts:
+  app.example.com:
+    paths:
+      # Chain checked against ca.crt, name checked against "backend.internal".
+      "/verified":
+        upstream: backend.internal:443        # port 443 or 8443 means TLS
+        upstream_tls:
+          ca: certs/ca.crt
+
+      # The back-end demands a client certificate.
+      "/mtls":
+        upstream: backend.internal:8443
+        upstream_tls:
+          ca: certs/ca.crt
+          client_cert: certs/client.crt
+          client_key: certs/client.key    # mode 0600 is best
+
+      # Same TLS back-end, but no `ca`: the route trusts only the system store,
+      # which does not hold our test CA. The health probe fails the same check,
+      # logs "presented a certificate that did not verify" and takes the server
+      # out of rotation, so the route has no server left and answers 404.
+      "/untrusted":
+        upstream: backend.internal:443
+
+      # The same, with the probe off. The request itself tries the connect, it
+      # fails, and the answer is 502 once no other server of the route is left.
+      "/untrusted-no-probe":
+        upstream: backend.internal:443
+        health_check:
+          type: none
+
+      # Skip both checks for this route. Use it to get going, not in production.
+      "/unverified":
+        upstream: backend.internal:443
+        upstream_tls:
+          verify: false

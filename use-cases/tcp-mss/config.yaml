@@ -1,0 +1,24 @@
+# Cap the TCP MSS of the connections a listener accepts. A TC stage of the BPF
+# firewall rewrites the MSS option of the client's SYN and of Synapse's SYN-ACK.
+# Needs Synapse 0.8.9 or later, Linux, and a firewall mode that attaches BPF
+# (auto or xdp). With `firewall.mode: none` the key is accepted and does nothing.
+mode: proxy
+
+firewall:
+  mode: auto
+capture:
+  enabled: false
+
+proxy:
+  listeners:
+    - name: http
+      address: "0.0.0.0:8080"
+      mode: http
+      tcp_mss: 1360          # 88 to 32767. It only lowers: a client that offers less keeps it
+  upstream:
+    conf: "/etc/synapse/upstreams.yaml"
+  acme:
+    enabled: false
+
+logging:
+  level: info
