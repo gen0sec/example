@@ -1,0 +1,43 @@
+# Headers Synapse adds to, or takes from, the request on its way to the back-end.
+# Needs Synapse 0.8.9 or later. All of these are read at start: a change takes
+# effect on restart, not on a SIGHUP reload.
+mode: proxy
+
+firewall:
+  mode: none
+capture:
+  enabled: false
+
+proxy:
+  listeners:
+    - { name: http, address: "0.0.0.0:8080", mode: http }
+    - { name: https, address: "0.0.0.0:8443", mode: tls }
+  upstream:
+    conf: "/etc/synapse/upstreams.yaml"
+  certificates: "/etc/synapse/certs"
+  default_certificate: app.example.com
+  acme:
+    enabled: false
+
+  # X-Forwarded-For. replace (default) sends the client address alone; append
+  # sends "<client's value>, <address>"; accept keeps the client's value and adds
+  # the address only when none was sent.
+  xff_mode: append
+  # A request whose TCP peer is in one of these gets no X-Forwarded-For handling:
+  # the header passes as it arrived. List only hops that set it themselves.
+  xff_exempt_networks:
+    - 172.30.6.22/32
+
+  # X-Forwarded-Proto: "https" on a TLS listener, "http" on a plain one. On by
+  # default; false sends nothing and leaves a client-sent header alone.
+  forwarded_proto: true
+
+  # Add this proxy to the Via header, request and response. Off by default.
+  via: append
+  via_pseudonym: synapse
+
+  # Send a request ID upstream. The name must not be a reserved header.
+  request_id_header: X-Request-Id
+
+logging:
+  level: info
