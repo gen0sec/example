@@ -1,0 +1,18 @@
+# Proxy mode, no firewall or capture, so the container needs no privileges.
+mode: proxy
+
+firewall:
+  mode: none
+capture:
+  enabled: false
+
+proxy:
+  listeners:
+    - { name: http, address: "0.0.0.0:8080", mode: http }
+  upstream:
+    conf: "/etc/synapse/upstreams.yaml"
+  acme:
+    enabled: false
+
+logging:
+  level: info

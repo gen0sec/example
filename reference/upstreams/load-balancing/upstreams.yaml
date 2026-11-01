@@ -22,10 +22,11 @@ hosts:
       terminate:
         cert: api.example.com
     paths:
-      # On a terminating route like this one, balancing is always weighted
-      # round-robin and `lb.method` has no effect; weights are honoured. (`lb.method`
-      # applies on passthrough hosts, see ../passthrough/.) An entry is "host:port"
-      # or { addr, weight } with weight defaulting to 1.
+      # With no `lb:` block a terminating route balances by weighted round-robin.
+      # From Synapse 0.8.9 `lb.method` also takes maglev, ring_hash and
+      # least_request here, and `lb.persistence` pins a client address to a server:
+      # see ../../../use-cases/lb-methods/ and ../../../use-cases/lb-source-ip-persistence/.
+      # An entry is "host:port" or { addr, weight } with weight defaulting to 1.
       "/v1":
         upstreams:
           - addr: 10.0.1.1:8080

@@ -1,0 +1,19 @@
+# Run:  docker compose up -d
+# The image is the 0.8.9 release image. To use a build of your own, set
+# SYNAPSE_IMAGE (for example SYNAPSE_IMAGE=synapse:local docker compose up -d).
+services:
+  synapse:
+    image: ${SYNAPSE_IMAGE:-registry.gen0sec.com/gen0sec/synapse:0.8.9}
+    command: ["-c", "/etc/synapse/config.yaml"]
+    ports: ["8090:8080"]
+    volumes: [".:/etc/synapse:ro"]
+    networks: { lb: { ipv4_address: 172.30.1.10 } }
+    depends_on: [web1, web2, web3]
+  web1: { image: traefik/whoami:v1.10.3, hostname: web1, networks: { lb: { ipv4_address: 172.30.1.11 } } }
+  web2: { image: traefik/whoami:v1.10.3, hostname: web2, networks: { lb: { ipv4_address: 172.30.1.12 } } }
+  web3: { image: traefik/whoami:v1.10.3, hostname: web3, networks: { lb: { ipv4_address: 172.30.1.13 } } }
+
+networks:
+  lb:
+    ipam:
+      config: [{ subnet: 172.30.1.0/24 }]

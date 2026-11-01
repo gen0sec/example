@@ -1,0 +1,30 @@
+# Run:  docker compose up -d
+# Two client containers with their own addresses show the pinning (see README).
+services:
+  synapse:
+    image: ${SYNAPSE_IMAGE:-registry.gen0sec.com/gen0sec/synapse:0.8.9}
+    command: ["-c", "/etc/synapse/config.yaml"]
+    ports: ["8081:8080"]
+    volumes: [".:/etc/synapse:ro"]
+    networks: { lb: { ipv4_address: 172.30.2.10 } }
+    depends_on: [web1, web2, web3]
+  web1: { image: traefik/whoami:v1.10.3, hostname: web1, networks: { lb: { ipv4_address: 172.30.2.11 } } }
+  web2: { image: traefik/whoami:v1.10.3, hostname: web2, networks: { lb: { ipv4_address: 172.30.2.12 } } }
+  web3: { image: traefik/whoami:v1.10.3, hostname: web3, networks: { lb: { ipv4_address: 172.30.2.13 } } }
+  client-a:
+    image: curlimages/curl:8.10.1
+    profiles: ["demo"]
+    entrypoint: ["/bin/sh", "-c"]
+    command: ["for i in 1 2 3 4 5 6; do curl -s -H 'Host: app.example.com' $${URL:-http://172.30.2.10:8080/pinned} | grep Hostname; done"]
+    networks: { lb: { ipv4_address: 172.30.2.21 } }
+  client-b:
+    image: curlimages/curl:8.10.1
+    profiles: ["demo"]
+    entrypoint: ["/bin/sh", "-c"]
+    command: ["for i in 1 2 3 4 5 6; do curl -s -H 'Host: app.example.com' $${URL:-http://172.30.2.10:8080/pinned} | grep Hostname; done"]
+    networks: { lb: { ipv4_address: 172.30.2.22 } }
+
+networks:
+  lb:
+    ipam:
+      config: [{ subnet: 172.30.2.0/24 }]

@@ -1,0 +1,29 @@
+# Run:  docker compose up -d
+services:
+  synapse:
+    image: ${SYNAPSE_IMAGE:-registry.gen0sec.com/gen0sec/synapse:0.8.9}
+    command: ["-c", "/etc/synapse/config.yaml"]
+    ports: ["8082:8080"]
+    volumes: [".:/etc/synapse:ro"]
+    networks: { lb: { ipv4_address: 172.30.3.10 } }
+    depends_on: [web1, web2, web3]
+  web1: { image: traefik/whoami:v1.10.3, hostname: web1, networks: { lb: { ipv4_address: 172.30.3.11 } } }
+  web2: { image: traefik/whoami:v1.10.3, hostname: web2, networks: { lb: { ipv4_address: 172.30.3.12 } } }
+  web3: { image: traefik/whoami:v1.10.3, hostname: web3, networks: { lb: { ipv4_address: 172.30.3.13 } } }
+  client-a:
+    image: curlimages/curl:8.10.1
+    profiles: ["demo"]
+    entrypoint: ["/bin/sh", "-c"]
+    command: ["for i in 1 2 3 4 5 6 7 8 9 10 11 12; do curl -s -H \"Host: $${HOST:-pt-maglev.example.com}\" http://172.30.3.10:8080/ | grep Hostname; done"]
+    networks: { lb: { ipv4_address: 172.30.3.21 } }
+  client-b:
+    image: curlimages/curl:8.10.1
+    profiles: ["demo"]
+    entrypoint: ["/bin/sh", "-c"]
+    command: ["for i in 1 2 3 4 5 6 7 8 9 10 11 12; do curl -s -H \"Host: $${HOST:-pt-maglev.example.com}\" http://172.30.3.10:8080/ | grep Hostname; done"]
+    networks: { lb: { ipv4_address: 172.30.3.22 } }
+
+networks:
+  lb:
+    ipam:
+      config: [{ subnet: 172.30.3.0/24 }]

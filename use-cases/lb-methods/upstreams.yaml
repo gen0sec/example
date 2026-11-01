@@ -1,0 +1,93 @@
+# Every lb.method a terminated route takes. round_robin, weighted_round_robin
+# and random rotate or draw; maglev and ring_hash hash a request key, so one
+# client, tenant, cookie or path keeps landing on the same server;
+# least_request balances by load. maglev, ring_hash and least_request need
+# Synapse 0.8.9 or later. A route with no `lb:` block is round_robin.
+version: 2
+
+hosts:
+  app.example.com:
+    paths:
+      # round_robin (the default): rotates by weight. These weights are 1, 1, 1.
+      "/round-robin":
+        upstreams:
+          - { addr: 172.30.1.11:80, weight: 1 }
+          - { addr: 172.30.1.12:80, weight: 1 }
+          - { addr: 172.30.1.13:80, weight: 1 }
+        lb: { method: round_robin }
+
+      # weighted_round_robin: on a terminated route the same as round_robin, with
+      # the weights doing the work: web1 gets 1 request in 6, web2 2, web3 3.
+      "/weighted":
+        upstreams:
+          - { addr: 172.30.1.11:80, weight: 1 }
+          - { addr: 172.30.1.12:80, weight: 2 }
+          - { addr: 172.30.1.13:80, weight: 3 }
+        lb: { method: weighted_round_robin }
+
+      # random: a weighted random draw per request.
+      "/random":
+        upstreams:
+          - { addr: 172.30.1.11:80, weight: 1 }
+          - { addr: 172.30.1.12:80, weight: 2 }
+          - { addr: 172.30.1.13:80, weight: 3 }
+        lb: { method: random }
+
+      # maglev, key = client address (the default key).
+      "/by-client":
+        upstreams:
+          - { addr: 172.30.1.11:80, weight: 1 }
+          - { addr: 172.30.1.12:80, weight: 1 }
+          - { addr: 172.30.1.13:80, weight: 1 }
+        lb: { method: maglev }
+
+      # maglev, key = the first value of a request header. A request without
+      # the header falls back to the weighted rotation.
+      "/by-header":
+        upstreams:
+          - { addr: 172.30.1.11:80, weight: 1 }
+          - { addr: 172.30.1.12:80, weight: 1 }
+          - { addr: 172.30.1.13:80, weight: 1 }
+        lb:
+          method: maglev
+          key: header:x-tenant
+
+      # ring_hash (also spelled `consistent`), key = a cookie. Upstreams of a
+      # ring_hash route must be IP literals; the total weight must be 10000 or less.
+      "/by-cookie":
+        upstreams:
+          - { addr: 172.30.1.11:80, weight: 1 }
+          - { addr: 172.30.1.12:80, weight: 1 }
+          - { addr: 172.30.1.13:80, weight: 1 }
+        lb:
+          method: ring_hash
+          key: cookie:session
+
+      # ring_hash, key = the request path without its query.
+      "/by-path":
+        upstreams:
+          - { addr: 172.30.1.11:80, weight: 1 }
+          - { addr: 172.30.1.12:80, weight: 1 }
+          - { addr: 172.30.1.13:80, weight: 1 }
+        lb:
+          method: ring_hash
+          key: path
+
+      # `consistent` is another name for ring_hash.
+      "/consistent":
+        upstreams:
+          - { addr: 172.30.1.11:80, weight: 1 }
+          - { addr: 172.30.1.12:80, weight: 1 }
+          - { addr: 172.30.1.13:80, weight: 1 }
+        lb:
+          method: consistent
+          key: client_ip
+
+      # least_request: of two servers drawn in proportion to weight, take the
+      # one with fewer requests in flight per weight. Takes no key.
+      "/least":
+        upstreams:
+          - { addr: 172.30.1.11:80, weight: 1 }
+          - { addr: 172.30.1.12:80, weight: 1 }
+          - { addr: 172.30.1.13:80, weight: 1 }
+        lb: { method: least_request }

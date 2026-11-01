@@ -1,0 +1,27 @@
+# Pin a client address to the server it first got, whatever the method says.
+# Needs Synapse 0.8.9 or later.
+version: 2
+
+hosts:
+  app.example.com:
+    paths:
+      # round_robin alone would move a client from server to server.
+      "/pinned":
+        upstreams:
+          - { addr: 172.30.2.11:80, weight: 1 }
+          - { addr: 172.30.2.12:80, weight: 1 }
+          - { addr: 172.30.2.13:80, weight: 1 }
+        lb:
+          method: round_robin
+          persistence:
+            kind: source_ip         # the only kind
+            timeout_secs: 1800      # idle time before a pin is dropped; 1 to 604800, default 1800
+            capacity: 100000        # pins kept; 1 to 10000000, default 100000, about 100 bytes each
+
+      # The same servers without persistence, for comparison.
+      "/unpinned":
+        upstreams:
+          - { addr: 172.30.2.11:80, weight: 1 }
+          - { addr: 172.30.2.12:80, weight: 1 }
+          - { addr: 172.30.2.13:80, weight: 1 }
+        lb: { method: round_robin }
