@@ -1,0 +1,65 @@
+# A passthrough host copies bytes without terminating TLS. Its server is picked
+# by `lb.method`. maglev and ring_hash (from Synapse 0.8.9) pick it by client
+# address, so one client keeps landing on the same server. least_request is
+# refused on a passthrough host.
+version: 2
+
+hosts:
+  # round_robin (the default): rotates, and IGNORES weights on a passthrough host.
+  pt-round-robin.example.com:
+    passthrough:
+      # `http:` is matched by the Host header, `tls:` by SNI. Each wire takes its
+      # own upstreams and lb. This example passes plain HTTP so the back-end can
+      # answer with its name.
+      http:
+        upstreams:
+          - { addr: 172.30.3.11:80, weight: 1 }
+          - { addr: 172.30.3.12:80, weight: 1 }
+          - { addr: 172.30.3.13:80, weight: 1 }
+        lb: { method: round_robin }
+    listeners: [http]
+
+  # weighted_round_robin: rotates by weight (web1 1 in 6, web2 2, web3 3).
+  pt-weighted.example.com:
+    passthrough:
+      http:
+        upstreams:
+          - { addr: 172.30.3.11:80, weight: 1 }
+          - { addr: 172.30.3.12:80, weight: 2 }
+          - { addr: 172.30.3.13:80, weight: 3 }
+        lb: { method: weighted_round_robin }
+    listeners: [http]
+
+  # random: a uniform draw; weights are ignored.
+  pt-random.example.com:
+    passthrough:
+      http:
+        upstreams:
+          - { addr: 172.30.3.11:80, weight: 1 }
+          - { addr: 172.30.3.12:80, weight: 1 }
+          - { addr: 172.30.3.13:80, weight: 1 }
+        lb: { method: random }
+    listeners: [http]
+
+  # maglev: the client address picks the server. lb.key is client_ip or absent.
+  pt-maglev.example.com:
+    passthrough:
+      http:
+        upstreams:
+          - { addr: 172.30.3.11:80, weight: 1 }
+          - { addr: 172.30.3.12:80, weight: 1 }
+          - { addr: 172.30.3.13:80, weight: 1 }
+        lb: { method: maglev }
+    listeners: [http]
+
+  # ring_hash (or `consistent`): the client address picks the server on a ketama
+  # ring. Upstreams must be IP literals; the total weight must be 10000 or less.
+  pt-ring-hash.example.com:
+    passthrough:
+      http:
+        upstreams:
+          - { addr: 172.30.3.11:80, weight: 1 }
+          - { addr: 172.30.3.12:80, weight: 1 }
+          - { addr: 172.30.3.13:80, weight: 1 }
+        lb: { method: ring_hash }
+    listeners: [http]
