@@ -16,6 +16,14 @@ closest to what you want and copy it. Every set uses placeholder values
 | [`smart-firewall`](./smart-firewall/) | agent | no | `CAP_NET_RAW`, `CAP_BPF`, `CAP_NET_ADMIN`, and `CAP_SYS_ADMIN` or `CAP_PERFMON` | XDP firewall that blocks by TCP fingerprint and source address from a local file, with the amygdala bridge for other JA4 kinds, and IDS bans from blocking rules |
 | [`capture-ids-ml`](./capture-ids-ml/) | agent | yes | `CAP_NET_RAW`, `CAP_BPF`, `CAP_NET_ADMIN`, and `CAP_SYS_ADMIN` or `CAP_PERFMON` | Detect-only XDP IDS with capture and four ML models that download with the API key; needs the `-ml` package |
 | [`agent-full-ml`](./agent-full-ml/) | agent | yes | `CAP_NET_RAW`, `CAP_BPF`, `CAP_NET_ADMIN`, and `CAP_SYS_ADMIN` or `CAP_PERFMON` | XDP firewall, smart firewall, blocking IDS with managed rules, capture and four ML models; needs the `-ml` package and an API key |
+| [`lb-methods`](./lb-methods/) | proxy | no | none: the demo listens on port 8080 | One route per `lb.method` over the same three servers; `maglev`, `ring_hash` and `least_request` need Synapse 0.8.9 or later |
+| [`lb-passthrough`](./lb-passthrough/) | proxy | no | none: the demo listens on port 8080 | One passthrough host per `lb.method`, without terminating TLS; `maglev` and `ring_hash` on a passthrough host need Synapse 0.8.9 or later |
+| [`lb-source-ip-persistence`](./lb-source-ip-persistence/) | proxy | no | none: the demo listens on port 8080 | Pin a client address to the server it first got, whatever `lb.method` says; needs Synapse 0.8.9 or later |
+| [`upstream-source`](./upstream-source/) | proxy | no | none: the demo listens on port 8080 | Bind the connections to a back-end to a local address, interface and port range; needs Synapse 0.8.9 or later |
+| [`upstream-tls`](./upstream-tls/) | proxy | no | none: the demo listens on port 8080 | Certificate chain and name checks for a TLS back-end, at the top level, per host or per path; needs Synapse 0.8.9 or later |
+| [`tcp-mss`](./tcp-mss/) | proxy | no | none: the demo listens on port 8080 | Cap the MSS of the connections a listener accepts; needs Synapse 0.8.9 or later |
+| [`edge-headers`](./edge-headers/) | proxy | no | none: the demo listens on ports 8080 and 8443 | `X-Forwarded-For`, `X-Forwarded-Proto`, `Via`, a request ID and HSTS; needs Synapse 0.8.9 or later |
+| [`header-rules`](./header-rules/) | proxy | no | none: the demo listens on port 8080 | Add and remove request and response headers, with a script that checks every rule |
 
 "Privileges" lists what the set's own config needs; the installation guide
 lists what the container image needs on top. Installation is covered in the
