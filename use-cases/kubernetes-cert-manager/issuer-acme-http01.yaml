@@ -1,0 +1,41 @@
+# NOT RUN. This issuer is not part of the demo and the README says so: it needs a
+# real ACME server that can reach the cluster, which the demo cluster has not.
+#
+# For a public cluster: replace the e-mail, apply this instead of
+# 10-cert-manager-issuers.yaml, and set the Ingress annotation
+# cert-manager.io/cluster-issuer to letsencrypt-http01 (and drop the duration
+# and renew-before annotations). The solver's Ingress must name the class of
+# the proxy: the operator then serves /.well-known/acme-challenge/<token>
+# from the solver's Service. The proxy's HTTP listener must be reachable from
+# the internet on port 80.
+#
+# letsencrypt-staging is for trying it out. Its certificates are not trusted.
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: letsencrypt-http01
+spec:
+  acme:
+    server: https://acme-v02.api.letsencrypt.org/directory
+    email: admin@example.com
+    privateKeySecretRef:
+      name: letsencrypt-http01-account
+    solvers:
+      - http01:
+          ingress:
+            ingressClassName: edge
+---
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: letsencrypt-staging
+spec:
+  acme:
+    server: https://acme-staging-v02.api.letsencrypt.org/directory
+    email: admin@example.com
+    privateKeySecretRef:
+      name: letsencrypt-staging-account
+    solvers:
+      - http01:
+          ingress:
+            ingressClassName: edge

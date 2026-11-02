@@ -1,0 +1,16 @@
+# A pod to curl the proxy from, because the demo cluster takes no traffic from
+# outside. It installs curl and openssl when it starts.
+apiVersion: v1
+kind: Pod
+metadata:
+  name: client
+  namespace: synapse-demo
+spec:
+  containers:
+    - name: client
+      image: alpine:3.20
+      command: ["sh", "-c", "apk add --no-cache curl openssl >/dev/null && sleep infinity"]
+      readinessProbe:
+        exec:
+          command: ["sh", "-c", "command -v curl && command -v openssl"]
+        periodSeconds: 2

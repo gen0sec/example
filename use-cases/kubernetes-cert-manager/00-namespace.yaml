@@ -1,0 +1,8 @@
+# The proxy pod is privileged and runs as root, so its namespace must allow
+# that, and nothing else should live in it.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: synapse-demo
+  labels:
+    pod-security.kubernetes.io/enforce: privileged

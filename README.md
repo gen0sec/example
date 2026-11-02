@@ -75,6 +75,10 @@ is at [docs.gen0sec.com](https://docs.gen0sec.com).
 - [Header rules](./use-cases/header-rules/): add and remove request and
   response headers, with a script that checks every rule against the running
   example.
+- [cert-manager on Kubernetes](./use-cases/kubernetes-cert-manager/): a
+  `SynapseProxy` of the Synapse operator serves an Ingress with a certificate
+  from cert-manager, and picks up a renewal without a restart. Needs Synapse
+  operator 0.2.0 (not released yet) and Synapse 0.8.8 or later.
 
 ### Being updated
 

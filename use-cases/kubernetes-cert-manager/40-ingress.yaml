@@ -1,0 +1,35 @@
+# cert-manager watches this Ingress, asks the issuer named in the annotation for
+# a certificate for every host in spec.tls, and stores it in the Secret that
+# spec.tls names. The operator copies that Secret to the proxy as
+# app.example.com.crt and app.example.com.key.
+#
+# The duration and renew-before annotations make the certificate live one hour
+# and renew five minutes after it is issued, so the demo shows a rotation. A
+# real certificate uses the issuer's default (Let's Encrypt: 90 days, renewed
+# at 60), so leave both annotations out.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: whoami
+  namespace: synapse-demo
+  annotations:
+    cert-manager.io/cluster-issuer: demo-ca
+    cert-manager.io/duration: 1h
+    cert-manager.io/renew-before: 55m
+spec:
+  ingressClassName: edge
+  tls:
+    - hosts:
+        - app.example.com
+      secretName: app-example-com-tls
+  rules:
+    - host: app.example.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: whoami
+                port:
+                  number: 80
