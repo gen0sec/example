@@ -4,7 +4,7 @@ apiVersion: v1
 kind: Pod
 metadata:
   name: client
-  namespace: synapse-demo
+  namespace: synapse-demo-apps
 spec:
   containers:
     - name: client

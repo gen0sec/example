@@ -10,12 +10,12 @@ Kubernetes manifests, applied in the order of their numbers:
 
 | File | What it makes |
 |---|---|
-| `00-namespace.yaml` | the `synapse-demo` namespace, with Pod Security `privileged` |
+| `00-namespace.yaml` | two namespaces: `synapse-demo` for the proxy, with Pod Security `privileged`, and `synapse-demo-apps` for everything else |
 | `10-cert-manager-issuers.yaml` | a self-signed `ClusterIssuer`, a CA certificate and a CA `ClusterIssuer`, `demo-ca` |
-| `20-synapseproxy.yaml` | the `SynapseProxy` `edge` (HTTP on 80, TLS on 443) and the `IngressClass` that names it |
-| `30-whoami.yaml` | the back-end |
-| `40-ingress.yaml` | an Ingress for `app.example.com` that asks `demo-ca` for a certificate |
-| `client.yaml` | a pod to curl the proxy from |
+| `20-synapseproxy.yaml` | the `SynapseProxy` `edge` (HTTP on 80, TLS on 443) and the `IngressClass` that names it, both in `synapse-demo` |
+| `30-whoami.yaml` | the back-end, in `synapse-demo-apps` |
+| `40-ingress.yaml` | an Ingress for `app.example.com` in `synapse-demo-apps` that asks `demo-ca` for a certificate |
+| `client.yaml` | a pod in `synapse-demo-apps` to curl the proxy from |
 | `issuer-acme-http01.yaml` | an issuer for a real ACME server. **Not run, not part of the demo.** |
 
 Things to know:
@@ -32,7 +32,12 @@ Things to know:
 - **The namespace must allow a privileged pod.** Pod Security `baseline` or
   `restricted` refuses the pods and keeps the Deployment: the proxy never becomes
   Ready and `kubectl get synapseproxy` shows `RollingOut`. The label lifts Pod
-  Security for every pod in the namespace, so give the proxy a namespace of its own.
+  Security for every pod in the namespace, so the proxy gets a namespace of its
+  own, and the back-end, the Ingress and the client live in `synapse-demo-apps`,
+  which has no label. The Ingress may sit in another namespace than the proxy:
+  the `IngressClass` (cluster-wide) names the `SynapseProxy`, and the operator
+  reads the Ingress and its TLS Secret from where they are. Nothing else was
+  needed in this run: no RBAC and no `hostOwnership` change.
 - **Certificates reach the pod after about a minute.** The operator copies the
   TLS Secrets into the proxy's volume as `<host>.crt` and `<host>.key`, and the
   kubelet refreshes a mounted volume on its own schedule. Synapse watches the
@@ -103,7 +108,7 @@ cd ..
 The Dockerfile asks for Go 1.26.10. If your Docker has an older `golang:1.26`
 image, it stops at `go mod download`; pull the image again, or add
 `ENV GOTOOLCHAIN=auto` after its `WORKDIR` line. (The run here did the latter and
-tagged the image `synapse-operator:ex-cm-93f76b1`.)
+tagged the image `synapse-operator:ex-cm2-93f76b1`.)
 
 Apply the manifests in order, then the client:
 
@@ -112,7 +117,7 @@ cd use-cases/kubernetes-cert-manager
 kubectl apply -f 00-namespace.yaml
 kubectl apply -f 10-cert-manager-issuers.yaml -f 20-synapseproxy.yaml -f 30-whoami.yaml
 kubectl apply -f client.yaml
-kubectl -n synapse-demo wait --for=condition=Ready pod/client --timeout=180s
+kubectl -n synapse-demo-apps wait --for=condition=Ready pod/client --timeout=180s
 ```
 
 The issuers and the proxy are ready, and the proxy has no certificate for
@@ -128,21 +133,21 @@ NAME              READY   AGE
 demo-ca           True    45s
 demo-selfsigned   True    45s
 NAME   READY   REASON    DESIRED   AVAILABLE   ADDRESS        AGE
-edge   True    Applied   1         1           10.43.167.56   45s
+edge   True    Applied   1         1           10.43.103.10   43s
 ```
 
 The bad case. `app.example.com` has no Ingress yet, so the proxy answers it with
 its default certificate and a 404:
 
 ```sh
-kubectl -n synapse-demo exec client -- sh -c 'openssl s_client -connect edge:443 -servername app.example.com </dev/null 2>/dev/null | openssl x509 -noout -subject -issuer -serial -enddate'
+kubectl -n synapse-demo-apps exec client -- sh -c 'openssl s_client -connect edge.synapse-demo:443 -servername app.example.com </dev/null 2>/dev/null | openssl x509 -noout -subject -issuer -serial -enddate'
 ```
 
 ```text
 subject=CN=synapse-default
 issuer=CN=synapse-default
-serial=75A69D52CD8E00BC370BB068AB4CA246
-notAfter=Nov  2 12:39:54 2027 GMT
+serial=30EF3EF4116B340B0D09810908A9DF19
+notAfter=Nov  2 13:01:32 2027 GMT
 ```
 
 Now the Ingress. cert-manager sees the annotation, makes a `Certificate`, and
@@ -150,36 +155,35 @@ issues it:
 
 ```sh
 kubectl apply -f 40-ingress.yaml
-kubectl -n synapse-demo get certificate,secret,ingress
+kubectl -n synapse-demo-apps get certificate,secret,ingress
 ```
 
 ```text
 NAME                                              READY   SECRET                AGE
-certificate.cert-manager.io/app-example-com-tls   True    app-example-com-tls   15s
+certificate.cert-manager.io/app-example-com-tls   True    app-example-com-tls   16s
 
-NAME                            TYPE                DATA   AGE
-secret/app-example-com-tls      kubernetes.io/tls   3      15s
-secret/edge-certs               Opaque              4      2m31s
-secret/edge-config-bf9d2d1a5f   Opaque              1      2m31s
+NAME                         TYPE                DATA   AGE
+secret/app-example-com-tls   kubernetes.io/tls   3      16s
 
 NAME                               CLASS   HOSTS             ADDRESS   PORTS     AGE
-ingress.networking.k8s.io/whoami   edge    app.example.com             80, 443   15s
+ingress.networking.k8s.io/whoami   edge    app.example.com             80, 443   16s
 ```
 
-The `ADDRESS` of the Ingress was empty in this run, also ten minutes later; the
-proxy served the host all the same.
+The `ADDRESS` of the Ingress stays empty; the proxy serves the host all the same.
+The operator's own Secrets (`edge-certs`, `edge-config-...`) are in
+`synapse-demo`, next to the proxy.
 
-About a minute and a half after the Ingress, the proxy serves the issued
+Within two minutes of the Ingress, the proxy serves the issued
 certificate. The issuer is `demo-ca` and the name is in the SAN:
 
 ```sh
-kubectl -n synapse-demo exec client -- sh -c 'openssl s_client -connect edge:443 -servername app.example.com </dev/null 2>/dev/null | openssl x509 -noout -issuer -serial -enddate -ext subjectAltName'
+kubectl -n synapse-demo-apps exec client -- sh -c 'openssl s_client -connect edge.synapse-demo:443 -servername app.example.com </dev/null 2>/dev/null | openssl x509 -noout -issuer -serial -enddate -ext subjectAltName'
 ```
 
 ```text
 issuer=CN=demo-ca
-serial=5A56BD1801A53C09FA792BF2F0D0DF050A75F6B8
-notAfter=Nov  2 13:42:10 2026 GMT
+serial=66393209412FB2CCB0CB416E6A481BD1B551CB9C
+notAfter=Nov  2 14:02:32 2026 GMT
 X509v3 Subject Alternative Name: critical
     DNS:app.example.com
 ```
@@ -188,58 +192,59 @@ A request that verifies the certificate against the demo CA:
 
 ```sh
 kubectl -n cert-manager get secret demo-ca -o jsonpath='{.data.ca\.crt}' | base64 -d \
-  | kubectl -n synapse-demo exec -i client -- sh -c 'cat > /tmp/ca.crt'
-kubectl -n synapse-demo exec client -- sh -c 'curl -sS --cacert /tmp/ca.crt --resolve app.example.com:443:$(getent hosts edge | cut -d" " -f1) https://app.example.com/ | head -4; curl -sS --cacert /tmp/ca.crt --resolve app.example.com:443:$(getent hosts edge | cut -d" " -f1) -o /dev/null -w "verify=%{ssl_verify_result} http=%{http_code}\n" https://app.example.com/'
+  | kubectl -n synapse-demo-apps exec -i client -- sh -c 'cat > /tmp/ca.crt'
+kubectl -n synapse-demo-apps exec client -- sh -c 'curl -sS --cacert /tmp/ca.crt --resolve app.example.com:443:$(getent hosts edge.synapse-demo | cut -d" " -f1) https://app.example.com/ | head -4; curl -sS --cacert /tmp/ca.crt --resolve app.example.com:443:$(getent hosts edge.synapse-demo | cut -d" " -f1) -o /dev/null -w "verify=%{ssl_verify_result} http=%{http_code}\n" https://app.example.com/'
 ```
 
 ```text
-Hostname: whoami-cb676888c-jw6t9
+Hostname: whoami-cb676888c-84tr7
 IP: 127.0.0.1
 IP: ::1
-IP: 10.42.0.9
+IP: 10.42.0.11
 verify=0 http=200
 ```
 
 ### Rotation
 
-The Certificate was issued at 12:42:10 and renews at 12:47:10 (five minutes, by
-the annotation). At 12:48:55 the Secret held a new serial and so did the proxy,
-and the proxy pod was the one it had been since 12:39:54 (the log says the
-volume was swapped at 12:48:11):
+The Certificate was issued at 13:02:32 and renews at 13:07:32 (five minutes, by
+the annotation). At 13:09:42 the Secret held a new serial and so did the proxy,
+and the proxy pod was the one it had been since 13:01:33 (the log says the
+volume was swapped at 13:07:41):
 
 ```text
-2026-11-02T12:47:10Z renew=2026-11-02T12:52:10Z rev=2
-serial=66A419310AD19F26BF2BE980AAEB836C0A106E0F       (the Secret)
-serial=66A419310AD19F26BF2BE980AAEB836C0A106E0F       (served by the proxy)
+2026-11-02T13:07:32Z renew=2026-11-02T13:12:32Z rev=2
+serial=0B29FECC928BD2FE0C79D625B2ACD7196B7394EF       (the Secret)
+serial=0B29FECC928BD2FE0C79D625B2ACD7196B7394EF       (served by the proxy)
 ```
 
 To force a renewal, delete the Secret. cert-manager notices, issues again and
-writes a new one. The serial served by the proxy changes about two minutes later,
-and the pod name, start time and restart count are the same before and after:
+writes a new one. The proxy serves the new serial within a few minutes, and the
+pod name, start time and restart count are the same before and after:
 
 ```sh
-kubectl -n synapse-demo delete secret app-example-com-tls
+kubectl -n synapse-demo-apps delete secret app-example-com-tls
 ```
 
 ```text
-== before (12:49:29)
-serial=66A419310AD19F26BF2BE980AAEB836C0A106E0F
+== before (13:10:51)
+serial=0B29FECC928BD2FE0C79D625B2ACD7196B7394EF
 NAME                    RESTARTS   START
-edge-7ff69b476b-cfcgj   0          2026-11-02T12:39:54Z
+edge-7ff69b476b-blwpj   0          2026-11-02T13:01:33Z
 secret "app-example-com-tls" deleted
-== after (12:51:15)
-2026-11-02T12:49:30Z renew=2026-11-02T12:54:30Z rev=3
-serial=376EDAD8930EE41BD4CB7985FAA25D75306D6297       (the Secret)
-serial=376EDAD8930EE41BD4CB7985FAA25D75306D6297       (served by the proxy)
+== after (13:12:59)
+2026-11-02T13:10:53Z rev=3
+serial=3AEF0B220136CE73D23CECA12825B0F3ED7CECA8       (the Secret)
+serial=3AEF0B220136CE73D23CECA12825B0F3ED7CECA8       (served by the proxy)
 NAME                    RESTARTS   START
-edge-7ff69b476b-cfcgj   0          2026-11-02T12:39:54Z
+edge-7ff69b476b-blwpj   0          2026-11-02T13:01:33Z
 ```
 
-The proxy logged the change, and no restart:
+The proxy logged each change (the first is the issuance), and no restart:
 
 ```text
-Certificate changed: Create(Folder), ["/etc/synapse/certs/..2026_11_02_12_48_11.2706575400"]
-Certificate changed: Create(Folder), ["/etc/synapse/certs/..2026_11_02_12_50_38.57154050"]
+Certificate changed: Create(Folder), ["/etc/synapse/certs/..2026_11_02_13_02_55.2983661074"]
+Certificate changed: Create(Folder), ["/etc/synapse/certs/..2026_11_02_13_07_41.3957573335"]
+Certificate changed: Create(Folder), ["/etc/synapse/certs/..2026_11_02_13_11_09.2443682852"]
 ```
 
 Your serials, names and times differ.
@@ -249,7 +254,14 @@ Your serials, names and times differ.
 ```sh
 kubectl delete -f client.yaml -f 40-ingress.yaml -f 30-whoami.yaml -f 20-synapseproxy.yaml
 kubectl delete -f 10-cert-manager-issuers.yaml -f 00-namespace.yaml
+kubectl -n cert-manager delete secret demo-ca
 ```
+
+The last line is needed. The CA's private key stays in the Secret `demo-ca`
+when its Certificate is deleted: cert-manager removes it only when it runs with
+`--enable-certificate-owner-ref`, which is off by default. After the first two
+commands `kubectl -n cert-manager get secret demo-ca` still showed it; after the
+third it answers `NotFound`.
 
 ### Checking the manifests
 
