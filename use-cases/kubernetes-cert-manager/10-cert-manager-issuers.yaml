@@ -1,0 +1,37 @@
+# The standard cert-manager "CA issuer" recipe: a self-signed issuer signs a
+# CA certificate, and a second issuer signs with that CA. The demo has no public
+# ingress, so no real ACME server can reach it. See issuer-acme-http01.yaml for
+# the issuer a public cluster uses instead.
+#
+# A ClusterIssuer keeps its CA in the "cluster resource namespace", which is
+# cert-manager by default.
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: demo-selfsigned
+spec:
+  selfSigned: {}
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: demo-ca
+  namespace: cert-manager
+spec:
+  isCA: true
+  commonName: demo-ca
+  secretName: demo-ca
+  privateKey:
+    algorithm: ECDSA
+    size: 256
+  issuerRef:
+    name: demo-selfsigned
+    kind: ClusterIssuer
+---
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: demo-ca
+spec:
+  ca:
+    secretName: demo-ca

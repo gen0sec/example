@@ -1,0 +1,35 @@
+# One resource makes the proxy: the operator renders its configuration and
+# creates its Deployment, Service and ServiceAccount. Needs the operator to run
+# with --proxy-controller, and Synapse 0.8.8 or later in the image.
+apiVersion: synapse.gen0sec.com/v1alpha1
+kind: SynapseProxy
+metadata:
+  name: edge
+  namespace: synapse-demo
+spec:
+  image: ghcr.io/gen0sec/synapse:0.8.8
+  replicas: 1
+  service:
+    # ClusterIP for the demo. A cluster with a load balancer uses LoadBalancer.
+    type: ClusterIP
+  listeners:
+    - name: http
+      port: 80
+      protocol: HTTP
+    - name: https
+      port: 443
+      protocol: TLS
+---
+# An Ingress with ingressClassName: edge is served by the proxy above.
+apiVersion: networking.k8s.io/v1
+kind: IngressClass
+metadata:
+  name: edge
+spec:
+  controller: gen0sec.com/synapse
+  parameters:
+    apiGroup: synapse.gen0sec.com
+    kind: SynapseProxy
+    scope: Namespace
+    namespace: synapse-demo
+    name: edge
