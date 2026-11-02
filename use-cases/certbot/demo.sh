@@ -21,5 +21,8 @@ echo "== a request on https"
 get app.example.com / | openssl s_client -quiet -CAfile /tmp/root.pem \
   -connect app.example.com:443 -servername app.example.com 2>&1 | grep -E '^(Hostname|Host):|error'
 
+echo "== a request on http"
+get app.example.com / | nc app.example.com 80 | sed -n '1p;2p' | tr -d '\r'
+
 echo "== the challenge path on http, with no file behind it"
 wget -S -O /dev/null http://app.example.com/.well-known/acme-challenge/none 2>&1 | grep -E '^  HTTP/'

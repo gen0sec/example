@@ -12,6 +12,8 @@ hosts:
     paths:
       "/":
         upstream: whoami:80
+        # Plain HTTP stays open only for the challenge path below.
+        force_https: true
       # With proxy.acme.enabled false, Synapse answers nothing here itself: the
       # request goes wherever the host's routes send it. Send it to the webroot,
       # the directory certbot writes the challenge file to. Write the path
