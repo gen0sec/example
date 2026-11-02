@@ -1,0 +1,27 @@
+# Run:  ./make-certs.sh && docker compose up -d
+# The image is the 0.8.9 release image. To use a build of your own, set
+# SYNAPSE_IMAGE (for example SYNAPSE_IMAGE=synapse:local docker compose up -d).
+services:
+  synapse:
+    image: ${SYNAPSE_IMAGE:-registry.gen0sec.com/gen0sec/synapse:0.8.9}
+    command: ["-c", "/etc/synapse/config.yaml"]
+    # The key path in upstreams.yaml is relative to the working directory.
+    working_dir: /etc/synapse
+    ports: ["8088:8080"]
+    volumes: [".:/etc/synapse:ro"]
+    networks: { sticky: { ipv4_address: 172.30.7.10 } }
+    depends_on: [web1, web2, web3]
+  web1: { image: traefik/whoami:v1.10.3, hostname: web1, networks: { sticky: { ipv4_address: 172.30.7.11 } } }
+  web2: { image: traefik/whoami:v1.10.3, hostname: web2, networks: { sticky: { ipv4_address: 172.30.7.12 } } }
+  web3: { image: traefik/whoami:v1.10.3, hostname: web3, networks: { sticky: { ipv4_address: 172.30.7.13 } } }
+  client:
+    image: curlimages/curl:8.10.1
+    profiles: ["demo"]
+    entrypoint: ["/bin/sh", "/demo/demo.sh"]
+    volumes: ["./demo.sh:/demo/demo.sh:ro"]
+    networks: { sticky: { ipv4_address: 172.30.7.21 } }
+
+networks:
+  sticky:
+    ipam:
+      config: [{ subnet: 172.30.7.0/24 }]

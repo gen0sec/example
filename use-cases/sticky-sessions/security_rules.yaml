@@ -1,0 +1,16 @@
+# No rules: Synapse looks for this file next to config.yaml and logs a warning
+# when it is missing.
+access_rules:
+  id: example-access
+  name: No access rules
+  description: Empty on purpose
+  allow:
+    ips: []
+    country: []
+    asn: []
+  block:
+    ips: []
+    country: []
+    asn: []
+waf_rules:
+  rules: []
