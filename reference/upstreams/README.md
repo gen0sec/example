@@ -31,5 +31,8 @@ set that `synapse --check-config` accepts: a `config.yaml` (proxy mode) and an
 - `transforms` expressions are compiled when the proxy starts, not by
   `--check-config`. `match_expr` is compiled by the check.
 - Backends use RFC 1918 addresses and `example.com` names. Replace them.
+- `sticky_sessions` needs `secret_file`, a key of at least 32 bytes that signs the
+  cookie; `load-balancing/make-certs.sh` makes a test one, which `make test`
+  runs first. A 0.8.9 build refuses the file without it.
 - `config.yaml` here only declares listeners. The full `proxy` section is in
   [`../config/proxy/`](../config/proxy/config.yaml).
