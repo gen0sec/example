@@ -58,6 +58,8 @@ is at [docs.gen0sec.com](https://docs.gen0sec.com).
 - [Source-IP persistence](./use-cases/lb-source-ip-persistence/): pin a client
   address to the server it first got, whatever `lb.method` says. Needs Synapse
   0.8.9 or later.
+- [Sticky sessions](./use-cases/sticky-sessions/): keep a client on the server it
+  first got with a signed cookie. Needs Synapse 0.8.9 or later.
 - [Back-end source address](./use-cases/upstream-source/): bind the connections
   Synapse opens to a back-end to a local address, interface and port range.
   Needs Synapse 0.8.9 or later.

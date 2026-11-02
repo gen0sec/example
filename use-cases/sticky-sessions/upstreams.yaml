@@ -1,0 +1,23 @@
+# Pin a client to the back-end it first got, with a signed cookie.
+# Needs Synapse 0.8.9 or later.
+version: 2
+
+proxy:
+  sticky_sessions:
+    enabled: true
+    # The key that signs the cookie: at least 32 bytes, and the whole file is the
+    # key. make-certs.sh makes a test one. In production make it once and give
+    # every node the same file, with an absolute path.
+    secret_file: sticky.key
+
+hosts:
+  app.example.com:
+    paths:
+      # round_robin alone would move a client from server to server. The cookie
+      # pins it, whatever the method says.
+      "/":
+        upstreams:
+          - { addr: 172.30.7.11:80, weight: 1 }
+          - { addr: 172.30.7.12:80, weight: 1 }
+          - { addr: 172.30.7.13:80, weight: 1 }
+        lb: { method: round_robin }

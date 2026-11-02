@@ -19,6 +19,7 @@ closest to what you want and copy it. Every set uses placeholder values
 | [`lb-methods`](./lb-methods/) | proxy | no | none: the demo listens on port 8080 | One route per `lb.method` over the same three servers; `maglev`, `ring_hash` and `least_request` need Synapse 0.8.9 or later |
 | [`lb-passthrough`](./lb-passthrough/) | proxy | no | none: the demo listens on port 8080 | One passthrough host per `lb.method`, without terminating TLS; `maglev` and `ring_hash` on a passthrough host need Synapse 0.8.9 or later |
 | [`lb-source-ip-persistence`](./lb-source-ip-persistence/) | proxy | no | none: the demo listens on port 8080 | Pin a client address to the server it first got, whatever `lb.method` says; needs Synapse 0.8.9 or later |
+| [`sticky-sessions`](./sticky-sessions/) | proxy | no | none: the demo listens on port 8088 | Keep a client on the server it first got with a signed cookie, and what happens to a cookie that does not verify; needs Synapse 0.8.9 or later |
 | [`upstream-source`](./upstream-source/) | proxy | no | none: the demo listens on port 8080 | Bind the connections to a back-end to a local address, interface and port range; needs Synapse 0.8.9 or later |
 | [`upstream-tls`](./upstream-tls/) | proxy | no | none: the demo listens on port 8080 | Certificate chain and name checks for a TLS back-end, at the top level, per host or per path; needs Synapse 0.8.9 or later |
 | [`tcp-mss`](./tcp-mss/) | proxy | no | none: the demo listens on port 8080 | Cap the MSS of the connections a listener accepts; needs Synapse 0.8.9 or later |
