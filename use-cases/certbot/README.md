@@ -127,12 +127,19 @@ serial=7E3AAB75D18199E5
 
 The serials, the issuer name and the dates differ on every run.
 
-A first certificate was not always served at once. In 3 of 7 runs of this demo
-against a 0.8.9 build, Synapse did not load the certificate certbot had just
-issued, and kept failing the handshake until the next change in the directory
-(the forced renewal loaded it). The other 4 loaded it within seconds. The cause
-was not found. If the "after" check still shows alert 40, check the log for
-`Certificate changed` before you trust the result.
+Synapse loads the first certificate when certbot creates its directory under
+`/etc/letsencrypt/live`, so it is served without waiting for a renewal. Builds
+before this fix, 0.8.9-rc.2 and earlier, could miss a first certificate:
+certbot makes the directory and its links within a fraction of a millisecond,
+and under load Synapse sometimes saw only the directory. The handshake then
+failed with alert 40 until the next change in the directory (the forced renewal
+loaded it). If the "after" check shows alert 40 on such a build, look for
+`Certificate changed` in the log and update.
+
+With the fixed build, the first certificate was served at the first poll in 10
+of 10 runs of this demo, and in 10 of 10 runs with Synapse sharing one CPU with
+two busy loops. The same starved runs on a build without the fix served it 1
+time in 10.
 
 ### What goes wrong
 
@@ -170,8 +177,8 @@ That is why `docker-compose.yml` creates it first.
 ## Not checked here
 
 The set was run against Pebble only. It was not run against Let's Encrypt, and
-the published 0.8.9 image was not pulled: the run used a 0.8.9 build of the
-binary.
+the published 0.8.9 image was not pulled: the run used a build of the 0.8.9
+branch that includes the first-certificate fix.
 
 ## Files
 
