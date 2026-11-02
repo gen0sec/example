@@ -1,0 +1,20 @@
+# One host. Its certificate comes from certbot; the webroot challenge goes to
+# a plain web server that serves the directory certbot writes to.
+version: 2
+
+hosts:
+  app.example.com:
+    tls:
+      terminate:
+        # The directory name under proxy.certificates, which is the first -d
+        # name certbot was given.
+        cert: app.example.com
+    paths:
+      "/":
+        upstream: whoami:80
+      # With proxy.acme.enabled false, Synapse answers nothing here itself: the
+      # request goes wherever the host's routes send it. Send it to the webroot,
+      # the directory certbot writes the challenge file to. Write the path
+      # without a trailing slash: it then covers everything under it.
+      "/.well-known/acme-challenge":
+        upstream: webroot:80

@@ -1,0 +1,25 @@
+# Proxy mode, no firewall or capture, so the container needs no privileges.
+mode: proxy
+
+firewall:
+  mode: none
+capture:
+  enabled: false
+
+proxy:
+  listeners:
+    # The plaintext listener answers the ACME http-01 challenge. Without it
+    # no certificate can be issued.
+    - { name: http, address: "0.0.0.0:80", mode: http }
+    - { name: https, address: "0.0.0.0:443", mode: tls }
+  upstream:
+    conf: "/etc/synapse/upstreams.yaml"
+  # Certbot's directory: one subdirectory per domain, holding fullchain.pem and
+  # privkey.pem. The directory must exist when Synapse starts; it may be empty.
+  certificates: "/etc/letsencrypt/live"
+  # The embedded ACME client is deprecated. Certbot does the issuing.
+  acme:
+    enabled: false
+
+logging:
+  level: info
