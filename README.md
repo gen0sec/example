@@ -52,6 +52,9 @@ is at [docs.gen0sec.com](https://docs.gen0sec.com).
 - [Load-balancing methods](./use-cases/lb-methods/): one route per `lb.method`
   (round robin, maglev, ring hash, least request and more) over the same three
   servers. Needs Synapse 0.8.9 or later.
+- [Certificates from certbot](./use-cases/certbot/): serve the certificates certbot
+  issues and renews, with the webroot challenge routed through Synapse. Needs
+  Synapse 0.8.9 or later.
 - [Load balancing on a passthrough host](./use-cases/lb-passthrough/): one
   passthrough host per `lb.method`, without terminating TLS. Needs Synapse
   0.8.9 or later.
