@@ -1,6 +1,7 @@
 # Headers Synapse adds to, or takes from, the request on its way to the back-end.
-# Needs Synapse 0.8.9 or later. All of these are read at start: a change takes
-# effect on restart, not on a SIGHUP reload.
+# Needs Synapse 0.8.9 or later. A SIGHUP applies a change to xff_mode,
+# xff_exempt_networks, forwarded_proto and request_id_header. via and
+# via_pseudonym are read at start: a change to them takes effect on restart.
 mode: proxy
 
 firewall:
