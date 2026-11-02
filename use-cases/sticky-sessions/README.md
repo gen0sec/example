@@ -36,7 +36,9 @@ Things to know:
   `synapse --check-config` does not report this yet.
 - `secret_file` is read as written. A relative path resolves against the
   working directory of the process, so the compose file sets `working_dir`. In
-  production give an absolute path and mode 0600.
+  production give an absolute path, mode 0600, owned by the user Synapse runs
+  as (root for the packages). The packaged unit cannot read a 0600 file that
+  another user owns, and the load then fails with `cannot read`.
 
 ## Run
 
@@ -75,9 +77,19 @@ set-cookie: backend_id=b22780b7c0c5810ac8101782a749cbb95d84ea9b6ae77eccfb.1df3d7
 Hostname: web3
 ```
 
-Your cookies differ: the key is random. To see a key change, replace
-`sticky.key` and send SIGHUP (`docker compose kill -s HUP synapse`). A client
-that sends its old cookie is placed again and gets a fresh one.
+Your cookies differ: the key is random. To see a key change, write a new
+key beside the old one, move it into place and send SIGHUP:
+
+```sh
+(umask 077; head -c 32 /dev/urandom > sticky.key.new) && mv sticky.key.new sticky.key
+docker compose kill -s HUP synapse
+```
+
+Moving the file keeps a load from reading a half-written key, and gives it the
+new file's mode. Rerunning `make-certs.sh` does not rotate: it keeps an existing
+key.
+
+A client that sends its old cookie is placed again and gets a fresh one.
 
 The demo listens on port 8088 of the Docker host. Set `SYNAPSE_IMAGE` to use
 your own image.
