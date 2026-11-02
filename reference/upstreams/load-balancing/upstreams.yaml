@@ -13,6 +13,8 @@ proxy:
   # bytes, the whole file is the key. Make it once and give every node the same
   # file, or one node ignores the cookie another issued:
   #   (umask 077; head -c 32 /dev/urandom > sticky.key)
+  # Mode 0600, owned by the user Synapse runs as (root for the packages). To
+  # rotate, write sticky.key.new the same way and `mv` it over sticky.key.
   # See ../../../use-cases/sticky-sessions/.
   sticky_sessions:
     enabled: true
