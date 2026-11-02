@@ -36,4 +36,5 @@ hosts:
 # host, from proxy.internal_services in config.yaml. /.well-known/acme-challenge/*
 # is served only when proxy.acme.enabled and internal_services.serve_acme_challenge
 # are both true; otherwise it goes to the upstream, so a certbot webroot keeps
-# working. The v2 `internal:` block is validated and then ignored; do not use it.
+# working. A v2 `internal:` block takes effect from Synapse 0.8.9 and is tried
+# before every host's routes; before that it was parsed and ignored.
