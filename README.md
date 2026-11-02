@@ -49,6 +49,30 @@ is at [docs.gen0sec.com](https://docs.gen0sec.com).
 - [Agent, everything on, with ML](./use-cases/agent-full-ml/): agent mode with
   the XDP firewall, smart firewall, a blocking IDS with managed rules, capture
   and ML models, with a Gen0Sec API key. Needs the `-ml` package.
+- [Load-balancing methods](./use-cases/lb-methods/): one route per `lb.method`
+  (round robin, maglev, ring hash, least request and more) over the same three
+  servers. Needs Synapse 0.8.9 or later.
+- [Load balancing on a passthrough host](./use-cases/lb-passthrough/): one
+  passthrough host per `lb.method`, without terminating TLS. Needs Synapse
+  0.8.9 or later.
+- [Source-IP persistence](./use-cases/lb-source-ip-persistence/): pin a client
+  address to the server it first got, whatever `lb.method` says. Needs Synapse
+  0.8.9 or later.
+- [Back-end source address](./use-cases/upstream-source/): bind the connections
+  Synapse opens to a back-end to a local address, interface and port range.
+  Needs Synapse 0.8.9 or later.
+- [Back-end TLS](./use-cases/upstream-tls/): how Synapse checks the certificate
+  chain and name of a TLS back-end, set at the top level, per host or per path.
+  Needs Synapse 0.8.9 or later.
+- [TCP MSS](./use-cases/tcp-mss/): cap the MSS of the connections a listener
+  accepts, for a path whose MTU is smaller than the client assumes. Needs
+  Synapse 0.8.9 or later.
+- [Forwarded headers, HSTS, Via and a request ID](./use-cases/edge-headers/):
+  what Synapse adds to a request on its way to the back-end, and the HSTS header
+  on the response. Needs Synapse 0.8.9 or later.
+- [Header rules](./use-cases/header-rules/): add and remove request and
+  response headers, with a script that checks every rule against the running
+  example.
 
 ### Being updated
 
