@@ -1,8 +1,14 @@
 # The proxy pod is privileged and runs as root, so its namespace must allow
-# that, and nothing else should live in it.
+# that, and nothing else should live in it. The back-end, the Ingress and the
+# client go in a second namespace that keeps the default Pod Security.
 apiVersion: v1
 kind: Namespace
 metadata:
   name: synapse-demo
   labels:
     pod-security.kubernetes.io/enforce: privileged
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: synapse-demo-apps

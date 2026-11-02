@@ -11,7 +11,7 @@ apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: whoami
-  namespace: synapse-demo
+  namespace: synapse-demo-apps
   annotations:
     cert-manager.io/cluster-issuer: demo-ca
     cert-manager.io/duration: 1h
