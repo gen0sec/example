@@ -2,12 +2,21 @@
 version: 2
 
 proxy:
-  # Cookie-based stickiness. The first response sets a `backend_id` cookie (10
-  # minutes, HttpOnly, SameSite=Lax) naming the backend that served it; a request
-  # that carries the cookie goes to that backend. It does not hash by client
-  # address. Default: disabled.
+  # Cookie-based stickiness. Every response of a sticky route sets a signed
+  # `backend_id` cookie, `<id>.<mac>` (10 minutes, HttpOnly, SameSite=Lax),
+  # naming the backend that served it; a request that carries a valid cookie goes
+  # to that backend. A cookie that is unsigned, signed with another key or names a
+  # backend the route does not list is ignored and replaced. It does not hash by
+  # client address. Default: disabled.
+  # From Synapse 0.8.9 `secret_file` is required when `enabled` is true, and the
+  # file is refused at load without it. It holds the signing key: at least 32
+  # bytes, the whole file is the key. Make it once and give every node the same
+  # file, or one node ignores the cookie another issued:
+  #   (umask 077; head -c 32 /dev/urandom > sticky.key)
+  # See ../../../use-cases/sticky-sessions/.
   sticky_sessions:
     enabled: true
+    secret_file: sticky.key
 
 # Whole seconds only: a value such as "5s" is rejected. Defaults: connect 5,
 # read 60, write 30, idle 60.
