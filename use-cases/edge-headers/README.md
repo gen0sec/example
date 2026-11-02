@@ -1,8 +1,10 @@
 # Forwarded headers, HSTS, Via and a request ID
 
 What Synapse adds to, or takes from, a request on its way to the back-end, and
-the HSTS header it adds to the response. **Needs Synapse 0.8.9 or later.** The
-`proxy:` keys are read at start: a change takes effect on restart, not on SIGHUP.
+the HSTS header it adds to the response. **Needs Synapse 0.8.9 or later.** A
+SIGHUP applies a change to `xff_mode`, `xff_exempt_networks`, `forwarded_proto`,
+`request_id_header` and `trusted_proxies`. `via` and `via_pseudonym` are read at
+start: a change to them takes effect on restart.
 
 | Setting | Where | What it does |
 |---|---|---|
@@ -23,7 +25,9 @@ Things to know:
 - `hsts` is added to TLS responses only, never to plain HTTP, redirects or block pages.
   `preload: true` needs `max_age` of at least 31536000 and `include_subdomains: true`.
 - Name reserved headers (`Host`, `Authorization`, `X-Forwarded-For` ...) in
-  `request_id_header` and the file is refused at start.
+  `request_id_header` and the file is refused, at start or on a reload. A refused
+  reload keeps the settings that were serving.
+- A request keeps the settings it started under; the next one uses the new ones.
 
 ## Run
 
@@ -44,6 +48,7 @@ docker compose exec client-a curl -skD- -o /dev/null --resolve app.example.com:8
 docker compose --profile demo down
 ```
 
-Set `xff_mode` to `replace` or `accept` in `config.yaml`, restart with
-`docker compose restart synapse`, and send the same request to compare. Set
-`SYNAPSE_IMAGE` to use your own image.
+Set `xff_mode` to `replace` or `accept` in `config.yaml`, reload with
+`docker compose kill -s HUP synapse`, and send the same request to compare. No
+restart is needed. Change `via` or `via_pseudonym` and you do need one:
+`docker compose restart synapse`. Set `SYNAPSE_IMAGE` to use your own image.
