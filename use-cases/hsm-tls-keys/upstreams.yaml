@@ -1,0 +1,37 @@
+# Three hosts, three keys: an RSA key and an EC key in the HSM, and a software
+# key. `cert:` is the certificate's NAME, the file stem in proxy.certificates
+# (www.example.com for www.example.com.crt), never a path. There is no `key:`:
+# the key is found beside the certificate, and whether it is in the HSM is
+# decided by the first line of that file.
+version: 2
+
+hosts:
+  # RSA key in the HSM.
+  www.example.com:
+    tls:
+      terminate:
+        cert: www.example.com
+    paths:
+      "/":
+        upstream: whoami:80
+        force_https: true
+
+  # EC (P-256) key in the HSM.
+  api.example.com:
+    tls:
+      terminate:
+        cert: api.example.com
+    paths:
+      "/":
+        upstream: whoami:80
+        force_https: true
+
+  # Software key (PEM), served beside the HSM hosts.
+  static.example.com:
+    tls:
+      terminate:
+        cert: static.example.com
+    paths:
+      "/":
+        upstream: whoami:80
+        force_https: true
