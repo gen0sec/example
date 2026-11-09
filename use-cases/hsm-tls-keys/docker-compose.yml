@@ -16,7 +16,7 @@ services:
       context: .
       target: synapse
       args:
-        SYNAPSE_IMAGE: ${SYNAPSE_IMAGE:-registry.gen0sec.com/gen0sec/synapse:0.9.0}
+        SYNAPSE_IMAGE: ${SYNAPSE_IMAGE:-registry.gen0sec.com/gen0sec/synapse:0.8.9}
     image: hsm-tls-keys-synapse:local
     command: ["-c", "/etc/synapse/config.yaml"]
     ports: ["8085:80", "8443:443"]

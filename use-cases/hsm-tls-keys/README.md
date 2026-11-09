@@ -2,7 +2,7 @@
 
 Keep the private keys of your TLS certificates in a hardware security module
 (HSM), or any other PKCS#11 token, and have Synapse sign handshakes with them.
-The key never leaves the device. **Needs Synapse 0.9.0 (not released yet).**
+The key never leaves the device. **Needs Synapse 0.8.9 or later.**
 Earlier releases cannot use a `pkcs11:` key.
 
 ```yaml
@@ -160,10 +160,7 @@ docker compose down -v
 
 The set was run against SoftHSM only, with RSA and EC keys over TLS 1.2 and
 TLS 1.3, using a build of Synapse that has HSM keys. It was not run against a
-hardware HSM, nor against a published image: no release has HSM keys yet. The
-`make test` check (`synapse --check-config`) needs a release that has both
-`--check-config` and `proxy.hsm`; until then it reports `proxy.hsm` as an
-unused option.
+hardware HSM, nor against a published image.
 
 ## Files
 

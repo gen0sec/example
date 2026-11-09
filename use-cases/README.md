@@ -26,7 +26,7 @@ closest to what you want and copy it. Every set uses placeholder values
 | [`tcp-mss`](./tcp-mss/) | proxy | no | none: the demo listens on port 8080 | Cap the MSS of the connections a listener accepts; needs Synapse 0.8.9 or later |
 | [`edge-headers`](./edge-headers/) | proxy | no | none: the demo listens on ports 8080 and 8443 | `X-Forwarded-For`, `X-Forwarded-Proto`, `Via`, a request ID and HSTS; needs Synapse 0.8.9 or later |
 | [`header-rules`](./header-rules/) | proxy | no | none: the demo listens on port 8080 | Add and remove request and response headers, with a script that checks every rule |
-| [`hsm-tls-keys`](./hsm-tls-keys/) | proxy | no | none: the demo listens on ports 8085 and 8443 | TLS private keys in an HSM over PKCS#11 (RSA and EC), served beside a software key, with the PIN in a file; the demo uses SoftHSM in docker; needs Synapse 0.9.0 (not released yet) |
+| [`hsm-tls-keys`](./hsm-tls-keys/) | proxy | no | none: the demo listens on ports 8085 and 8443 | TLS private keys in an HSM over PKCS#11 (RSA and EC), served beside a software key, with the PIN in a file; the demo uses SoftHSM in docker; needs Synapse 0.8.9 or later |
 | [`kubernetes-cert-manager`](./kubernetes-cert-manager/) | proxy | no | a privileged proxy pod, Kubernetes cluster | A `SynapseProxy` of the Synapse operator serving an Ingress with a certificate from cert-manager, and the proxy picking up a renewed certificate without a restart; needs Synapse operator 0.2.0 (not released yet) and Synapse 0.8.8 or later |
 
 "Privileges" lists what the set's own config needs; the installation guide

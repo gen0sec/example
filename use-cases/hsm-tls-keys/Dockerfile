@@ -1,7 +1,7 @@
 # Two images from one file: `token` provisions a SoftHSM token, `synapse` is the
 # Synapse image with the SoftHSM module added. A real HSM needs neither: you
 # install your vendor's PKCS#11 module instead.
-ARG SYNAPSE_IMAGE=registry.gen0sec.com/gen0sec/synapse:0.9.0
+ARG SYNAPSE_IMAGE=registry.gen0sec.com/gen0sec/synapse:0.8.9
 
 FROM debian:13 AS token
 RUN apt-get update \
