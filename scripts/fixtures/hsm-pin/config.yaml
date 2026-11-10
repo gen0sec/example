@@ -1,0 +1,10 @@
+# Control fixture: an HSM block whose PIN file does not exist here. check.sh
+# MUST pass it by pointing PROXY_HSM_PIN_FILE at a test PIN file.
+mode: agent
+network:
+  iface: lo
+proxy:
+  hsm:
+    modules:
+      - /usr/lib/softhsm/libsofthsm2.so
+    pin_file: /nonexistent/hsm/pin
