@@ -15,6 +15,12 @@
 set -eu
 
 [ -f /hsm/pin ] && { echo "token already provisioned"; exit 0; }
+# The PIN file is written last, so a token without it is a run that stopped
+# half way. Starting again would add a second token.
+if [ -n "$(ls -A /hsm/tokens 2>/dev/null)" ]; then
+  echo "a previous run stopped half way; start again with: docker compose down -v" >&2
+  exit 1
+fi
 
 work=$(mktemp -d)
 trap 'rm -rf "$work"' EXIT

@@ -117,11 +117,14 @@ for dir in "${sets[@]}"; do
     "$dir/make-certs.sh" >/dev/null 2>&1 || { echo "FAIL $dir (make-certs.sh failed)"; failed=$((failed + 1)); continue; }
   fi
 
-  # A set with an hsm block names a PIN file that exists only where it is
-  # deployed; it gets the test PIN instead. No other set sees a PIN env, so a
-  # caller's PROXY_HSM_PIN_FILE cannot change a result.
+  # A set whose hsm block names a pin_file names a path that exists only where
+  # it is deployed; it gets the test PIN instead. No other set sees a PIN env,
+  # so a caller's PROXY_HSM_PIN_FILE cannot change a result. Limit: the binary
+  # does not require pin_file, so a set that omits it passes here and fails
+  # only when a key loads; every set MUST name one.
   env_args=(-u PROXY_HSM_PIN_FILE -u AX_PROXY_HSM_PIN_FILE)
-  if grep -Eq '^[[:space:]]+hsm:' "$dir/config.yaml"; then
+  if grep -Eq '^[[:space:]]+hsm:' "$dir/config.yaml" &&
+    grep -Eq '^[[:space:]]+pin_file:' "$dir/config.yaml"; then
     make_test_pin || { echo "FAIL $dir (cannot make a test PIN file)"; failed=$((failed + 1)); continue; }
     env_args+=("PROXY_HSM_PIN_FILE=$pin_dir/pin")
   fi

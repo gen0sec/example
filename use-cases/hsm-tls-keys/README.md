@@ -151,6 +151,10 @@ docker compose down -v
   certificate from your CA.
 - Keep the PIN file out of the configuration directory and out of version
   control, mode `0600`, and hand it to the service with `LoadCredential=`.
+- **The demo passes the PINs on the command line.** `make-token.sh` gives
+  `softhsm2-util` and `pkcs11-tool` the PIN and SO PIN as arguments, which
+  other processes on the host can read. Set up a real token with the vendor's
+  tool, typing the PINs at its prompt.
 - Use your own host names for the `hosts:` keys, for `cert:` and for the
   certificate file names.
 - Set `provider_dir` if the `pkcs11.so` of the provider is not in a
