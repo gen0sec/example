@@ -1,0 +1,52 @@
+# Run:  docker compose up -d
+# Synapse with the SoftHSM module added, built from the image in SYNAPSE_IMAGE.
+# The default is the release that has HSM keys; to use a build of your own, set
+# SYNAPSE_IMAGE (for example SYNAPSE_IMAGE=synapse:local docker compose up -d).
+services:
+  # Makes the token, the certificates and the PIN file once, into volumes.
+  token:
+    build: { context: ., target: token }
+    entrypoint: ["/etc/synapse/make-token.sh"]
+    volumes:
+      - ".:/etc/synapse:ro"
+      - "hsm:/hsm"
+      - "certs:/certs"
+  synapse:
+    build:
+      context: .
+      target: synapse
+      args:
+        SYNAPSE_IMAGE: ${SYNAPSE_IMAGE:-registry.gen0sec.com/gen0sec/synapse:0.8.9}
+    image: hsm-tls-keys-synapse:local
+    command: ["-c", "/etc/synapse/config.yaml"]
+    ports: ["8085:80", "8443:443"]
+    volumes:
+      - ".:/etc/synapse:ro"
+      - "hsm:/hsm:ro"
+      - "certs:/certs:ro"
+    networks:
+      hsm:
+        aliases: [www.example.com, api.example.com, static.example.com]
+    depends_on:
+      token: { condition: service_completed_successfully }
+      whoami: { condition: service_started }
+  whoami:
+    image: traefik/whoami:v1.10.3
+    hostname: whoami
+    networks: [hsm]
+  client:
+    image: alpine/openssl:3.3.2
+    profiles: ["demo"]
+    entrypoint: ["/bin/sh", "/demo/client.sh"]
+    volumes:
+      - "./client.sh:/demo/client.sh:ro"
+      # The certificates only: not the token or the PIN.
+      - "certs:/certs:ro"
+    networks: [hsm]
+
+volumes:
+  hsm:
+  certs:
+
+networks:
+  hsm:

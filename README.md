@@ -82,6 +82,10 @@ is at [docs.gen0sec.com](https://docs.gen0sec.com).
   `SynapseProxy` of the Synapse operator serves an Ingress with a certificate
   from cert-manager, and picks up a renewal without a restart. Needs Synapse
   operator 0.2.0 (not released yet) and Synapse 0.8.8 or later.
+- [TLS keys in an HSM](./use-cases/hsm-tls-keys/): serve certificates whose
+  private keys live in an HSM or other PKCS#11 token, beside a software key,
+  with the PIN in a file. The demo runs SoftHSM in docker. Needs Synapse 0.8.9
+  or later.
 
 ### Being updated
 

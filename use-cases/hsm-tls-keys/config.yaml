@@ -1,0 +1,55 @@
+# Proxy mode, no firewall or capture, so the container needs no privileges.
+mode: proxy
+
+firewall:
+  mode: none
+capture:
+  enabled: false
+
+proxy:
+  listeners:
+    - { name: http, address: "0.0.0.0:80", mode: http }
+    - { name: https, address: "0.0.0.0:443", mode: tls }
+  upstream:
+    conf: "/etc/synapse/upstreams.yaml"
+
+  # Certificates stay on disk. Each <name>.crt has a <name>.key beside it. A
+  # .key file whose first line is a pkcs11: URI is a key in the HSM; a PEM .key
+  # file is a software key. Both can sit in the same directory:
+  #
+  #   www.example.com.crt     certificate
+  #   www.example.com.key     pkcs11:token=synapse;object=www;type=private
+  #   api.example.com.crt
+  #   api.example.com.key     pkcs11:token=synapse;object=api;type=private
+  #   static.example.com.crt
+  #   static.example.com.key  an ordinary PEM private key
+  #
+  # The URI MUST NOT carry the PIN: pin-value and pin-source are rejected.
+  certificates: "/certs"
+
+  # Served to a client that sends no SNI, or a name no certificate covers.
+  default_certificate: "www.example.com"
+
+  hsm:
+    # PKCS#11 modules, tried in order; list a second one for failover. This is
+    # SoftHSM, a software token for demos. Use your vendor's module.
+    modules:
+      - /usr/lib/softhsm/libsofthsm2.so
+    # The token PIN. A regular, non-empty file owned by the service user or
+    # root, mode 0600. With systemd, hand it over with LoadCredential= and
+    # point this at /run/credentials/<unit>/<name>. PROXY_HSM_PIN_FILE
+    # overrides it.
+    pin_file: /hsm/pin
+    # How often, in seconds, every HSM key signs a test message. A failure
+    # reloads the certificates through `modules`, so a recovered HSM is picked
+    # up within one interval. 0 turns the probe off.
+    retry_interval_secs: 30
+    # What a host whose HSM key cannot be loaded gets:
+    #   fail      the TLS handshake for its names is refused (default)
+    #   fallback  the default certificate is served, with a warning
+    # During an outage a reload keeps serving the last working context until
+    # its certificate expires, in both modes.
+    on_failure: fail
+
+logging:
+  level: info

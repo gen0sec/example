@@ -91,6 +91,17 @@ fi
 
 failed=$orphans
 skipped=0
+
+# make_test_pin: make a 0600 test PIN file at "$pin_dir/pin", once per run;
+# it is removed on exit. The binary checks only the file, never a token.
+pin_dir=
+make_test_pin() {
+  [ -n "$pin_dir" ] && return 0
+  pin_dir=$(mktemp -d) || return 1
+  trap 'rm -rf -- "$pin_dir"' EXIT
+  (umask 077 && printf '1234\n' >"$pin_dir/pin")
+}
+
 for dir in "${sets[@]}"; do
   args=(--check-config --config config.yaml)
   [ -f "$dir/upstreams.yaml" ] && args+=(--upstream-conf upstreams.yaml)
@@ -106,7 +117,19 @@ for dir in "${sets[@]}"; do
     "$dir/make-certs.sh" >/dev/null 2>&1 || { echo "FAIL $dir (make-certs.sh failed)"; failed=$((failed + 1)); continue; }
   fi
 
-  out=$(cd "$dir" && "$bin" "${args[@]}" 2>&1)
+  # A set whose hsm block names a pin_file names a path that exists only where
+  # it is deployed; it gets the test PIN instead. No other set sees a PIN env,
+  # so a caller's PROXY_HSM_PIN_FILE cannot change a result. Limit: the binary
+  # does not require pin_file, so a set that omits it passes here and fails
+  # only when a key loads; every set MUST name one.
+  env_args=(-u PROXY_HSM_PIN_FILE -u AX_PROXY_HSM_PIN_FILE)
+  if grep -Eq '^[[:space:]]+hsm:' "$dir/config.yaml" &&
+    grep -Eq '^[[:space:]]+pin_file:' "$dir/config.yaml"; then
+    make_test_pin || { echo "FAIL $dir (cannot make a test PIN file)"; failed=$((failed + 1)); continue; }
+    env_args+=("PROXY_HSM_PIN_FILE=$pin_dir/pin")
+  fi
+
+  out=$(cd "$dir" && env "${env_args[@]}" "$bin" "${args[@]}" 2>&1)
   rc=$?
 
   # Warnings that fail the check (all but the absent-rules-file notice).

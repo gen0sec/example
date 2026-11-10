@@ -9,6 +9,8 @@
 #   typo in upstreams.yaml / security_rules.yaml -> must fail
 #   orphan upstreams.yaml (no config.yaml beside it) -> must fail
 #   relative SYNAPSE_BIN -> must still work
+#   HSM set (hsm-pin) -> fails without a PIN file, passes through check.sh;
+#     a caller's PROXY_HSM_PIN_FILE does not reach a set without hsm
 #   ML keys (ml-keys, ml-keys-typo, ml-inner-typo) -> depends on the build,
 #     which this script detects: a default build skips ml-keys, fails
 #     ml-keys-typo and fails ml-keys under SYNAPSE_REQUIRE_ML=1; a classifier
@@ -80,6 +82,14 @@ expect pass "valid set with upstreams and rules passes" "ok   " "$check" "$fx/va
 expect fail "typo in upstreams.yaml fails" "upstreamz" "$check" "$fx/typo-upstreams"
 expect fail "typo in security_rules.yaml fails" "ips" "$check" "$fx/typo-rules"
 expect fail "orphan upstreams.yaml fails" "lonely" "$check" "$fx/orphan-root"
+
+# An HSM set names a PIN file that exists only where it is deployed. check.sh
+# hands it a test PIN through PROXY_HSM_PIN_FILE; without that it fails.
+expect fail "HSM set fails without a test PIN" "proxy.hsm.pin_file" \
+  bash -c 'cd "$1" && env -u PROXY_HSM_PIN_FILE -u AX_PROXY_HSM_PIN_FILE "$2" --check-config --config config.yaml' _ "$fx/hsm-pin" "$bin"
+expect pass "HSM set passes with check.sh's test PIN" "ok   " "$check" "$fx/hsm-pin"
+expect pass "a caller's PIN env does not reach a set without hsm" "ok   " \
+  env PROXY_HSM_PIN_FILE=/nonexistent/pin "$check" "$fx/valid"
 
 # A relative SYNAPSE_BIN must work: the check runs from each set's directory.
 abs_bin=$(command -v "${SYNAPSE_BIN:-synapse}" 2>/dev/null || true)
