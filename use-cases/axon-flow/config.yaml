@@ -1,0 +1,39 @@
+# axon-flow: a Lua snippet that runs on every flow the smart firewall evaluated.
+# Needs Synapse 0.8.10 or later, built with the `axon` feature (and with
+# `amygdala-reactor`, which the standard packages have).
+mode: agent
+
+firewall:
+  enabled: true
+  mode: xdp
+  amygdala:
+    enabled: true
+    backend: auto
+
+capture:
+  enabled: true
+  interface: eth0
+
+logging:
+  level: info
+  file_logging_enabled: true
+  log_directory: "/var/log/synapse"
+  events_log_format: json
+  eventbridge_log:
+    enabled: true
+
+snippet:
+  enabled: true
+  # Stop the start when the snippet cannot load, instead of running without it.
+  required: true
+
+  flow_by_axon:
+    file: flow.lua
+    # Off: a block the snippet returns is recorded as a log entry and never
+    # enforced. This example only tags.
+    allow_block: false
+    # Named wirefilter expressions, in the smart firewall's field vocabulary.
+    # The snippet asks for one with axon.filter("name"). A bad expression
+    # rejects the file, and the snippet that was serving keeps serving.
+    filters:
+      tls_to_risky: 'tcp.dst_port eq 443 and threat.score ge 80'

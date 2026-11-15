@@ -90,6 +90,9 @@ is at [docs.gen0sec.com](https://docs.gen0sec.com).
   every request the WAF allowed, and blocks a path, rate-limits a client and
   tags a scanner, with a script that checks each. Needs Synapse 0.8.10 built
   with the `axon` feature.
+- [Lua snippets on flows](./use-cases/axon-flow/): an axon snippet runs on every
+  flow the smart firewall evaluated and tags it. Needs Synapse 0.8.10 built
+  with the `axon` feature.
 
 ### Being updated
 

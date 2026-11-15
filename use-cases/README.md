@@ -29,6 +29,7 @@ closest to what you want and copy it. Every set uses placeholder values
 | [`hsm-tls-keys`](./hsm-tls-keys/) | proxy | no | none: the demo listens on ports 8085 and 8443 | TLS private keys in an HSM over PKCS#11 (RSA and EC), served beside a software key, with the PIN in a file; the demo uses SoftHSM in docker; needs Synapse 0.8.9 or later |
 | [`kubernetes-cert-manager`](./kubernetes-cert-manager/) | proxy | no | a privileged proxy pod, Kubernetes cluster | A `SynapseProxy` of the Synapse operator serving an Ingress with a certificate from cert-manager, and the proxy picking up a renewed certificate without a restart; needs Synapse operator 0.2.0 (not released yet) and Synapse 0.8.8 or later |
 | [`axon-access`](./axon-access/) | proxy | no | none: the demo listens on port 8090 | A Lua snippet on every request the WAF allowed: block a path, rate-limit a client with a shared dictionary, tag a scanner in the access log; needs Synapse 0.8.10 built with the `axon` feature |
+| [`axon-flow`](./axon-flow/) | agent | no | the same as `smart-firewall` | A Lua snippet on every flow the smart firewall evaluated: tag a flow with a named expression and by field; needs Synapse 0.8.10 built with the `axon` feature |
 
 "Privileges" lists what the set's own config needs; the installation guide
 lists what the container image needs on top. Installation is covered in the
