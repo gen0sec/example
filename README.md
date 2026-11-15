@@ -86,6 +86,10 @@ is at [docs.gen0sec.com](https://docs.gen0sec.com).
   private keys live in an HSM or other PKCS#11 token, beside a software key,
   with the PIN in a file. The demo runs SoftHSM in docker. Needs Synapse 0.8.9
   or later.
+- [Lua snippets on requests](./use-cases/axon-access/): an axon snippet runs on
+  every request the WAF allowed, and blocks a path, rate-limits a client and
+  tags a scanner, with a script that checks each. Needs Synapse 0.8.10 built
+  with the `axon` feature.
 
 ### Being updated
 
