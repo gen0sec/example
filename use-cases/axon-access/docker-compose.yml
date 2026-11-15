@@ -1,0 +1,15 @@
+# Run:  docker compose up -d && ./test.sh
+# SYNAPSE_IMAGE must be a Synapse 0.8.10 image built with the `axon` feature.
+services:
+  synapse:
+    image: ${SYNAPSE_IMAGE:-registry.gen0sec.com/gen0sec/synapse:0.8.10}
+    working_dir: /etc/synapse
+    command: ["-c", "/etc/synapse/config.yaml"]
+    ports: ["8090:8080"]
+    volumes:
+      - ".:/etc/synapse:ro"
+      - "./logs:/var/log/synapse"
+    depends_on: [whoami]
+  whoami:
+    image: traefik/whoami:v1.10.3
+    hostname: whoami

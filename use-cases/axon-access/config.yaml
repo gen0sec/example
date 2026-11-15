@@ -1,0 +1,39 @@
+# axon-access: a Lua snippet that runs on every request the WAF allowed.
+# Needs Synapse 0.8.10 or later, built with the `axon` feature.
+mode: proxy
+
+firewall:
+  mode: none
+capture:
+  enabled: false
+
+proxy:
+  listeners:
+    - { name: http, address: "0.0.0.0:8080", mode: http }
+  upstream:
+    conf: "/etc/synapse/upstreams.yaml"
+  acme:
+    enabled: false
+
+logging:
+  level: info
+  # The snippet's tag is written to access.log, as performance.axon_tag.
+  file_logging_enabled: true
+  log_directory: /var/log/synapse
+
+snippet:
+  enabled: true
+  # Stop the start when the snippet cannot load, instead of running without it.
+  required: true
+
+  # The shared dictionary every worker thread sees. A dict that is not
+  # declared does not exist: axon.shared.hits is nil. Sized in entries.
+  shared_dicts:
+    - name: hits
+      entries: 10000
+
+  access_by_axon:
+    file: access.lua
+    # A relative path is read from the working directory; the compose file sets it.
+    # Without this a block is recorded as a log entry and never enforced.
+    allow_block: true
